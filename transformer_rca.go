@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/dispatch"
@@ -113,5 +114,34 @@ func (t *rcaTransformer) Transform(ctx context.Context, tc *framework.Transforme
 		f.MarkDone(artifactFile)
 	}
 
-	return parseArtifact(json.RawMessage(data))
+	return parseArtifact(json.RawMessage(cleanJSONResponse(data)))
+}
+
+// cleanJSONResponse strips markdown code fences and surrounding prose
+// from LLM responses that wrap JSON in ```json ... ``` blocks.
+func cleanJSONResponse(data []byte) []byte {
+	s := strings.TrimSpace(string(data))
+
+	// Strip ```json ... ``` fences.
+	if idx := strings.Index(s, "```json"); idx >= 0 {
+		s = s[idx+len("```json"):]
+		if end := strings.LastIndex(s, "```"); end >= 0 {
+			s = s[:end]
+		}
+		return []byte(strings.TrimSpace(s))
+	}
+	if idx := strings.Index(s, "```"); idx >= 0 {
+		s = s[idx+len("```"):]
+		if end := strings.LastIndex(s, "```"); end >= 0 {
+			s = s[:end]
+		}
+		return []byte(strings.TrimSpace(s))
+	}
+
+	// Try to find raw JSON object/array in the response.
+	if start := strings.IndexAny(s, "{["); start > 0 {
+		return []byte(s[start:])
+	}
+
+	return data
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ func calibrateScenarioName() string {
 	if v := os.Getenv("CALIBRATE_SCENARIO"); v != "" {
 		return v
 	}
-	return "ptp-mock"
+	return "ptp"
 }
 
 func calibrateBackend() string {
@@ -54,15 +55,35 @@ func loadCalibrationScenario(t *testing.T, domainFS fs.FS) *rca.Scenario {
 	return scenario
 }
 
-func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario) ([]*framework.Component, rca.IDMappable) {
+func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS fs.FS) ([]*framework.Component, rca.IDMappable) {
 	t.Helper()
 	backend := calibrateBackend()
 	switch backend {
 	case "stub":
 		stub := rca.NewStubTransformer(scenario)
 		return []*framework.Component{rca.TransformerComponent(stub)}, stub
+	case "cli":
+		command := os.Getenv("CALIBRATE_CLI_COMMAND")
+		if command == "" {
+			t.Skip("CALIBRATE_CLI_COMMAND not set — skipping CLI calibration")
+		}
+		var args []string
+		if a := os.Getenv("CALIBRATE_CLI_ARGS"); a != "" {
+			args = strings.Fields(a)
+		}
+		cliDisp, err := dispatch.NewCLIDispatcher(command,
+			dispatch.WithCLIArgs(args...),
+			dispatch.WithCLITimeout(10*time.Minute),
+		)
+		if err != nil {
+			t.Skipf("CLI dispatcher unavailable: %v", err)
+		}
+		transformer := rca.NewRCATransformer(cliDisp, domainFS,
+			rca.WithRCABasePath(t.TempDir()),
+		)
+		return []*framework.Component{rca.TransformerComponent(transformer)}, nil
 	default:
-		t.Fatalf("test wrapper only supports stub backend (got %q); use MCP server for llm", backend)
+		t.Fatalf("unknown backend %q (available: stub, cli)", backend)
 		return nil, nil
 	}
 }
@@ -70,7 +91,7 @@ func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario) ([]*framew
 func TestCalibrate(t *testing.T) {
 	domainFS := testDomainFS(t)
 	scenario := loadCalibrationScenario(t, domainFS)
-	comps, idMapper := buildCalibrationComponents(t, scenario)
+	comps, idMapper := buildCalibrationComponents(t, scenario, domainFS)
 
 	circuitData, err := fs.ReadFile(domainFS, "circuits/rca.yaml")
 	if err != nil {
@@ -102,7 +123,11 @@ func TestCalibrate(t *testing.T) {
 		ReportTemplate: calReportTemplate,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	timeout := 2 * time.Minute
+	if calibrateBackend() == "cli" {
+		timeout = 30 * time.Minute // CLI backends need time for LLM calls
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	harnessConfig := cal.HarnessConfig{
@@ -116,7 +141,20 @@ func TestCalibrate(t *testing.T) {
 		Transformer:    calibrateBackend(),
 		Runs:           1,
 		Parallel:       1,
-		OnCaseComplete: adapter.OnCaseComplete(),
+		OnCaseComplete: func() func(int, framework.BatchWalkResult) {
+			adapterCB := adapter.OnCaseComplete()
+			total := len(scenario.Cases)
+			return func(i int, result framework.BatchWalkResult) {
+				if adapterCB != nil {
+					adapterCB(i, result)
+				}
+				if result.Error != nil {
+					fmt.Fprintf(os.Stderr, "  [%d/%d] %s ERROR: %v\n", i+1, total, result.CaseID, result.Error)
+				} else {
+					fmt.Fprintf(os.Stderr, "  [%d/%d] %s OK (steps: %d)\n", i+1, total, result.CaseID, len(result.Path))
+				}
+			}
+		}(),
 	}
 
 	if res := calibrateResolution(); res != "" {
