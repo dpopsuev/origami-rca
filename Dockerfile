@@ -9,15 +9,12 @@
 FROM golang:1.24 AS builder
 WORKDIR /src
 COPY rh-rca/go.mod rh-rca/go.sum ./rh-rca/
-COPY rh-dsr/go.mod rh-dsr/go.sum ./rh-dsr/
 COPY origami/go.mod origami/go.sum ./origami/
 RUN cd rh-rca && \
     go mod edit \
-        -replace github.com/dpopsuev/origami=../origami \
-        -replace github.com/dpopsuev/rh-dsr=../rh-dsr && \
+        -replace github.com/dpopsuev/origami=../origami && \
     go mod download
 COPY rh-rca/ ./rh-rca/
-COPY rh-dsr/ ./rh-dsr/
 COPY origami/ ./origami/
 RUN cd rh-rca && CGO_ENABLED=0 go build -o /rca-serve ./cmd/serve
 
