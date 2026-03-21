@@ -224,28 +224,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 		},
 	}
 
-	cfg.OnStepDispatched = func(caseID, step string) {
-		if s.Observer != nil {
-			s.Observer.OnStepDispatched(caseID, step)
-		}
-	}
-	cfg.OnStepCompleted = func(caseID, step string, dispatchID int64) {
-		if s.Observer != nil {
-			s.Observer.OnStepCompleted(caseID, step, dispatchID)
-		}
-	}
-
-	cfg.OnCircuitDone = func() {
-		if s.Observer != nil {
-			s.Observer.OnCircuitDone()
-		}
-	}
-
-	cfg.OnSessionEnd = func() {
-		if s.Observer != nil {
-			s.Observer.OnSessionEnd()
-		}
-	}
+	cfg.Observer = s.Observer // framework auto-wires On* callbacks
 
 	return cfg
 }

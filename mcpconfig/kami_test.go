@@ -17,11 +17,6 @@ import (
 
 func newTestServerWithKami(t *testing.T) (*mcpserver.Server, string) {
 	t.Helper()
-	srv := mcpserver.NewServer("test-rca",
-		mcpserver.WithDomainFS(testDomainFS(t)),
-		mcpserver.WithStateDir(t.TempDir()),
-	)
-	srv.ProjectRoot = projectRoot(t)
 
 	bridge := kami.NewEventBridge(nil)
 	kamiSrv := kami.NewServer(kami.Config{Bridge: bridge})
@@ -33,7 +28,13 @@ func newTestServerWithKami(t *testing.T) (*mcpserver.Server, string) {
 		t.Fatalf("kami start: %v", err)
 	}
 
-	srv.Observer = kami.NewSessionObserver(kamiSrv)
+	srv := mcpserver.NewServer("test-rca",
+		mcpserver.WithDomainFS(testDomainFS(t)),
+		mcpserver.WithStateDir(t.TempDir()),
+		mcpserver.WithSessionObserver(kami.NewSessionObserver(kamiSrv)),
+	)
+	srv.ProjectRoot = projectRoot(t)
+
 	kami.RegisterMCPTools(srv.MCPServer, nil, kamiSrv)
 
 	t.Cleanup(func() {

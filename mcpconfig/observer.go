@@ -3,16 +3,17 @@ package mcpconfig
 import (
 	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/dispatch"
+	fwmcp "github.com/dpopsuev/origami/mcp"
 )
 
 // SessionObserver receives lifecycle and progress events from the MCP
 // server. Implementations wire these to visualization layers (e.g.
 // Kami SSE + view.CircuitStore) without the MCP server importing them.
+//
+// Embeds mcp.SessionObserver for the four auto-wired callbacks;
+// adds OnSessionCreate and Close for consumer-specific lifecycle.
 type SessionObserver interface {
+	fwmcp.SessionObserver
 	OnSessionCreate(def *framework.CircuitDef, bus *dispatch.SignalBus)
-	OnStepDispatched(caseID, step string)
-	OnStepCompleted(caseID, step string, dispatchID int64)
-	OnCircuitDone()
-	OnSessionEnd()
 	Close()
 }
