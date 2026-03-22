@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
+
 )
 
 func TestMapExtractor_ImplementsExtractor(t *testing.T) {
-	var ext framework.Extractor = NewMapExtractor("test-step")
+	var ext engine.Extractor = NewMapExtractor("test-step")
 	if ext.Name() != "test-step" {
 		t.Errorf("Name() = %q, want %q", ext.Name(), "test-step")
 	}

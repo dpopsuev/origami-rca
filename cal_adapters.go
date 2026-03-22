@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"sync"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/rh-rca/rcatype"
@@ -40,7 +40,7 @@ type caseEntry struct {
 type RCACalibrationAdapter struct {
 	// Input configuration — set by caller before passing to calibrate.Run().
 	Scenario        *Scenario
-	Components      []*framework.Component
+	Components      []*engine.Component
 	IDMapper        IDMappable
 	BasePath        string
 	Thresholds      Thresholds
@@ -78,8 +78,8 @@ func (a *RCACalibrationAdapter) SuiteID() int64 { return a.suiteID }
 // --- ScenarioLoader ---
 
 // Load bootstraps an in-memory store, creates suite/version/circuit/launch/job/case
-// entities, and returns BatchCases ready for framework.BatchWalk.
-func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, error) {
+// entities, and returns BatchCases ready for engine.BatchWalk.
+func (a *RCACalibrationAdapter) Load(_ context.Context) ([]engine.BatchCase, error) {
 	if a.BasePath == "" {
 		a.BasePath = DefaultBasePath
 	}
@@ -151,7 +151,7 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, 
 
 	catalog := ScenarioToCatalog(a.Scenario.SourcePack)
 	a.entries = make([]caseEntry, len(a.Scenario.Cases))
-	batchCases := make([]framework.BatchCase, len(a.Scenario.Cases))
+	batchCases := make([]engine.BatchCase, len(a.Scenario.Cases))
 
 	for i, gtCase := range a.Scenario.Cases {
 		pk := pipeKey{gtCase.Version, gtCase.Job}
@@ -176,12 +176,12 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, 
 		}
 		caseDir, _ := EnsureCaseDir(a.BasePath, suiteID, caseData.ID)
 
-		storeComp := &framework.Component{
+		storeComp := &engine.Component{
 			Namespace: "store",
 			Name:      "rca-store-hooks",
 			Hooks:     StoreHooks(st, caseData),
 		}
-		injectComp := &framework.Component{
+		injectComp := &engine.Component{
 			Namespace: "inject",
 			Name:      "rca-inject-hooks",
 			Hooks: InjectHooksWithOpts(InjectHookOpts{
@@ -195,11 +195,11 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, 
 
 		a.entries[i] = caseEntry{gtCase: gtCase, caseData: caseData, caseDir: caseDir}
 
-		adapters := make([]*framework.Component, len(a.Components), len(a.Components)+2)
+		adapters := make([]*engine.Component, len(a.Components), len(a.Components)+2)
 		copy(adapters, a.Components)
 		adapters = append(adapters, storeComp, injectComp)
 
-		batchCases[i] = framework.BatchCase{
+		batchCases[i] = engine.BatchCase{
 			ID: gtCase.ID,
 			Context: map[string]any{
 				KeyCaseData:  caseData,
@@ -216,12 +216,12 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, 
 
 // OnCaseComplete returns a callback for HarnessConfig.OnCaseComplete that
 // updates ID maps for cross-case references (stub transformer).
-func (a *RCACalibrationAdapter) OnCaseComplete() func(int, framework.BatchWalkResult) {
+func (a *RCACalibrationAdapter) OnCaseComplete() func(int, engine.BatchWalkResult) {
 	if a.IDMapper == nil {
 		return nil
 	}
 	var mu sync.Mutex
-	return func(i int, _ framework.BatchWalkResult) {
+	return func(i int, _ engine.BatchWalkResult) {
 		mu.Lock()
 		defer mu.Unlock()
 		updateIDMaps(a.IDMapper, a.st, a.entries[i].caseData, a.entries[i].gtCase, a.Scenario)
@@ -233,7 +233,7 @@ func (a *RCACalibrationAdapter) OnCaseComplete() func(int, framework.BatchWalkRe
 // Collect processes BatchWalkResults into CaseResults, scores them against
 // ground truth, enriches with token data, and returns metric values/details
 // ready for ScoreCard.Evaluate().
-func (a *RCACalibrationAdapter) Collect(_ context.Context, results []framework.BatchWalkResult) (map[string]float64, map[string]string, error) {
+func (a *RCACalibrationAdapter) Collect(_ context.Context, results []engine.BatchWalkResult) (map[string]float64, map[string]string, error) {
 	logger := slog.Default().With("component", "calibrate")
 
 	// Build a RunConfig for collectCaseResult compatibility.

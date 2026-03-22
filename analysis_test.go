@@ -5,7 +5,7 @@ import (
 
 	"github.com/dpopsuev/rh-rca/store"
 	"github.com/dpopsuev/rh-rca"
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
@@ -72,7 +72,7 @@ func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
 	}
 
 	cfg := rca.AnalysisConfig{
-		Components:  []*framework.Component{rca.HeuristicComponent(st, []string{"linuxptp-daemon", "cloud-event-proxy"}, readTestdata(t, "heuristics.yaml"))},
+		Components:  []*engine.Component{rca.HeuristicComponent(st, []string{"linuxptp-daemon", "cloud-event-proxy"}, readTestdata(t, "heuristics.yaml"))},
 		Thresholds:  rca.DefaultThresholds(),
 		BasePath:    tmpDir,
 		CircuitData: readTestdata(t, "circuit_rca.yaml"),
@@ -112,7 +112,7 @@ func TestRunAnalysis_EmptyCases(t *testing.T) {
 	st := store.NewMemStore()
 
 	cfg := rca.AnalysisConfig{
-		Components:  []*framework.Component{rca.HeuristicComponent(st, nil, nil)},
+		Components:  []*engine.Component{rca.HeuristicComponent(st, nil, nil)},
 		Thresholds:  rca.DefaultThresholds(),
 		BasePath:    tmpDir,
 		CircuitData: readTestdata(t, "circuit_rca.yaml"),

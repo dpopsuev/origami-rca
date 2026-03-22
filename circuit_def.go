@@ -4,7 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 )
 
 //go:embed circuit.yaml
@@ -16,7 +17,7 @@ func DefaultCircuitYAML() []byte { return defaultCircuitYAML }
 // SchematicResolver returns an AssetResolver that resolves "rca" to the
 // embedded base circuit. Consumer overlays use `import: rca` to merge
 // with this base.
-func SchematicResolver() framework.AssetResolver {
+func SchematicResolver() circuit.AssetResolver {
 	return func(name string) ([]byte, error) {
 		if name == "rca" {
 			return defaultCircuitYAML, nil
@@ -40,11 +41,11 @@ func ThresholdsToVars(th Thresholds) map[string]any {
 // overrides vars with the provided thresholds. If the data is a consumer
 // overlay (has `import: rca`), it is merged with the embedded base circuit.
 // If data is nil, the embedded base circuit is used directly.
-func LoadCircuitDef(data []byte, th Thresholds) (*framework.CircuitDef, error) {
+func LoadCircuitDef(data []byte, th Thresholds) (*circuit.CircuitDef, error) {
 	if data == nil {
 		data = defaultCircuitYAML
 	}
-	def, err := framework.LoadCircuitWithOverlay(data, SchematicResolver())
+	def, err := circuit.LoadCircuitWithOverlay(data, SchematicResolver())
 	if err != nil {
 		return nil, fmt.Errorf("load circuit YAML: %w", err)
 	}
@@ -59,21 +60,21 @@ func LoadCircuitDef(data []byte, th Thresholds) (*framework.CircuitDef, error) {
 	return def, nil
 }
 
-// BuildRunner constructs a framework.Runner from the RCA circuit
+// BuildRunner constructs a engine.Runner from the RCA circuit
 // definition with the given thresholds and components. When circuitData
 // is nil the embedded default is used.
-func BuildRunner(circuitData []byte, th Thresholds, comps ...*framework.Component) (*framework.Runner, error) {
+func BuildRunner(circuitData []byte, th Thresholds, comps ...*engine.Component) (*engine.Runner, error) {
 	def, err := LoadCircuitDef(circuitData, th)
 	if err != nil {
 		return nil, err
 	}
-	reg := framework.GraphRegistries{}
+	reg := engine.GraphRegistries{}
 	if len(comps) > 0 {
-		reg, err = framework.MergeComponents(reg, comps...)
+		reg, err = engine.MergeComponents(reg, comps...)
 		if err != nil {
 			return nil, fmt.Errorf("merge components: %w", err)
 		}
 	}
-	return framework.NewRunnerWith(def, reg)
+	return engine.NewRunnerWith(def, reg)
 }
 

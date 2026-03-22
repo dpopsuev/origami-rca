@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/origami/schematics/toolkit"
 )
 
@@ -38,26 +38,26 @@ func CompareRoutingLogs(expected, actual RoutingLog) []RoutingDiff {
 	return toolkit.CompareRoutingLogs(expected, actual)
 }
 
-// RoutingRecorder wraps a framework.Transformer, recording every Transform call.
+// RoutingRecorder wraps a engine.Transformer, recording every Transform call.
 // Thread-safe for parallel calibration.
 type RoutingRecorder struct {
-	inner framework.Transformer
+	inner engine.Transformer
 	color string
 	mu    sync.Mutex
 	log   RoutingLog
 	seq   int64
 }
 
-func NewRoutingRecorder(inner framework.Transformer, color string) *RoutingRecorder {
+func NewRoutingRecorder(inner engine.Transformer, color string) *RoutingRecorder {
 	return &RoutingRecorder{inner: inner, color: color}
 }
 
 func (r *RoutingRecorder) Name() string { return r.inner.Name() }
 func (r *RoutingRecorder) Deterministic() bool {
-	return framework.IsDeterministic(r.inner)
+	return engine.IsDeterministic(r.inner)
 }
 
-func (r *RoutingRecorder) Transform(ctx context.Context, tc *framework.TransformerContext) (any, error) {
+func (r *RoutingRecorder) Transform(ctx context.Context, tc *engine.TransformerContext) (any, error) {
 	caseLabel, _ := tc.WalkerState.Context[KeyCaseLabel].(string)
 	if caseLabel == "" {
 		caseLabel = tc.WalkerState.ID

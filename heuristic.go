@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/transformers"
 
 	"github.com/dpopsuev/rh-rca/store"
@@ -43,7 +43,7 @@ type failureInfo struct {
 	logSnippet   string
 }
 
-func failureFromContext(ws *framework.WalkerState) failureInfo {
+func failureFromContext(ws *circuit.WalkerState) failureInfo {
 	if ws == nil {
 		return failureInfo{}
 	}

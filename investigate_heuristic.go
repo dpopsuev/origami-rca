@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type investigateHeuristic struct {
@@ -15,7 +15,7 @@ type investigateHeuristic struct {
 func (t *investigateHeuristic) Name() string        { return "investigate-heuristic" }
 func (t *investigateHeuristic) Deterministic() bool { return true }
 
-func (t *investigateHeuristic) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *investigateHeuristic) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	fp := failureFromContext(tc.WalkerState)
 	text := t.ht.textFromFailure(fp)
 	component := t.ht.identifyComponent(text)

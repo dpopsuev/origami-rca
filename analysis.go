@@ -8,7 +8,7 @@ import (
 
 	"github.com/dpopsuev/rh-rca/store"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/schematics/toolkit"
@@ -16,7 +16,7 @@ import (
 
 // AnalysisConfig holds configuration for an analysis run.
 type AnalysisConfig struct {
-	Components      []*framework.Component
+	Components      []*engine.Component
 	Envelope        *rcatype.Envelope
 	Catalog         toolkit.SourceCatalog
 	Thresholds      Thresholds
@@ -109,12 +109,12 @@ func walkAnalysisCase(
 	}
 	caseDir, _ := EnsureCaseDir(basePath, 0, caseData.ID)
 
-	hooksComp := &framework.Component{
+	hooksComp := &engine.Component{
 		Namespace: "store",
 		Name:      "rca-store-hooks",
 		Hooks:     StoreHooks(st, caseData),
 	}
-	injectComp := &framework.Component{
+	injectComp := &engine.Component{
 		Namespace: "inject",
 		Name:      "rca-inject-hooks",
 		Hooks: InjectHooksWithOpts(InjectHookOpts{

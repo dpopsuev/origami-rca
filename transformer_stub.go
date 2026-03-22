@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type stubTransformer struct {
@@ -50,7 +50,7 @@ func (t *stubTransformer) getSymptomID(gtID string) int64 {
 	return t.symptomIDMap[gtID]
 }
 
-func (t *stubTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *stubTransformer) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	nodeName := tc.NodeName
 	caseID := tc.WalkerState.ID
 	gtCase := t.findCase(caseID)

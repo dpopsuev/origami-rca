@@ -1,14 +1,14 @@
 package rca
 
 import (
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 )
 
 // DoneNodeName is the terminal pseudo-node name used in circuit definitions.
 const DoneNodeName = "DONE"
 
-// WrapNodeArtifact wraps an artifact as a framework.Artifact using the node name as type.
-func WrapNodeArtifact(nodeName string, artifact any) framework.Artifact {
+// WrapNodeArtifact wraps an artifact as a circuit.Artifact using the node name as type.
+func WrapNodeArtifact(nodeName string, artifact any) circuit.Artifact {
 	if artifact == nil {
 		return nil
 	}

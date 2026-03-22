@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/rh-rca"
@@ -55,13 +55,13 @@ func loadCalibrationScenario(t *testing.T, domainFS fs.FS) *rca.Scenario {
 	return scenario
 }
 
-func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS fs.FS) ([]*framework.Component, rca.IDMappable) {
+func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS fs.FS) ([]*engine.Component, rca.IDMappable) {
 	t.Helper()
 	backend := calibrateBackend()
 	switch backend {
 	case "stub":
 		stub := rca.NewStubTransformer(scenario)
-		return []*framework.Component{rca.TransformerComponent(stub)}, stub
+		return []*engine.Component{rca.TransformerComponent(stub)}, stub
 	case "cli":
 		command := os.Getenv("CALIBRATE_CLI_COMMAND")
 		if command == "" {
@@ -81,7 +81,7 @@ func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS f
 		transformer := rca.NewRCATransformer(cliDisp, domainFS,
 			rca.WithRCABasePath(t.TempDir()),
 		)
-		return []*framework.Component{rca.TransformerComponent(transformer)}, nil
+		return []*engine.Component{rca.TransformerComponent(transformer)}, nil
 	default:
 		t.Fatalf("unknown backend %q (available: stub, cli)", backend)
 		return nil, nil
@@ -141,10 +141,10 @@ func TestCalibrate(t *testing.T) {
 		Transformer:    calibrateBackend(),
 		Runs:           1,
 		Parallel:       1,
-		OnCaseComplete: func() func(int, framework.BatchWalkResult) {
+		OnCaseComplete: func() func(int, engine.BatchWalkResult) {
 			adapterCB := adapter.OnCaseComplete()
 			total := len(scenario.Cases)
-			return func(i int, result framework.BatchWalkResult) {
+			return func(i int, result engine.BatchWalkResult) {
 				if adapterCB != nil {
 					adapterCB(i, result)
 				}

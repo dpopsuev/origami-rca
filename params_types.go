@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/schematics/toolkit"
 )
 
@@ -232,7 +232,7 @@ func DefaultTaxonomy() *TaxonomyParams {
 // TaxonomyFromDefectTypes builds a TaxonomyParams from a set of defect type
 // entries. Each entry is rendered as "- code: Long Name" (with optional
 // description appended as " — description"). Used for prompt injection.
-func TaxonomyFromDefectTypes(types map[string]framework.VocabEntry) *TaxonomyParams {
+func TaxonomyFromDefectTypes(types map[string]circuit.VocabEntry) *TaxonomyParams {
 	if len(types) == 0 {
 		return &TaxonomyParams{}
 	}

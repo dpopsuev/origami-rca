@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 
@@ -28,7 +28,7 @@ type IDMappable interface {
 // RunConfig holds configuration for a calibration run.
 type RunConfig struct {
 	Scenario     *Scenario
-	Components     []*framework.Component // transformer component(s) for the circuit
+	Components     []*engine.Component // transformer component(s) for the circuit
 	TransformerName string             // label for reports
 	IDMapper     IDMappable           // optional; stub cross-case references
 	Runs         int
@@ -47,7 +47,7 @@ type RunConfig struct {
 }
 
 // DefaultRunConfig returns defaults for calibration.
-func DefaultRunConfig(scenario *Scenario, comps []*framework.Component, transformerName string) RunConfig {
+func DefaultRunConfig(scenario *Scenario, comps []*engine.Component, transformerName string) RunConfig {
 	return RunConfig{
 		Scenario:                 scenario,
 		Components:               comps,
@@ -220,7 +220,7 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 // collectCaseResult builds a CaseResult from a BatchWalkResult, extracting
 // step metrics, writing artifacts, and reading final store state.
 func collectCaseResult(
-	br framework.BatchWalkResult,
+	br engine.BatchWalkResult,
 	gtCase GroundTruthCase,
 	caseData *store.Case,
 	caseDir string,

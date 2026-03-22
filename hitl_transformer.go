@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/fs"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
-// hitlTransformerNode implements framework.Transformer for HITL mode.
-// It fills a prompt template and returns framework.Interrupt to pause
+// hitlTransformerNode implements engine.Transformer for HITL mode.
+// It fills a prompt template and returns engine.Interrupt to pause
 // the walk for human input. On resume, the caller injects the artifact
 // via the "resume_input" context key, and this transformer parses and
 // returns it.
@@ -21,7 +21,7 @@ type hitlTransformerNode struct {
 func (t *hitlTransformerNode) Name() string        { return "hitl-" + t.nodeName }
 func (t *hitlTransformerNode) Deterministic() bool { return false }
 
-func (t *hitlTransformerNode) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *hitlTransformerNode) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	if input, ok := tc.WalkerState.Context["resume_input"]; ok {
 		delete(tc.WalkerState.Context, "resume_input")
 		data, err := json.Marshal(input)
@@ -54,7 +54,7 @@ func (t *hitlTransformerNode) Transform(_ context.Context, tc *framework.Transfo
 		return nil, fmt.Errorf("hitl %s: write prompt: %w", t.nodeName, err)
 	}
 
-	return nil, framework.Interrupt{
+	return nil, engine.Interrupt{
 		Reason: fmt.Sprintf("awaiting human input for %s", t.nodeName),
 		Data:   map[string]any{"prompt_path": promptPath, "step": t.nodeName},
 	}

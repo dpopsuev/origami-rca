@@ -6,7 +6,8 @@ import (
 
 	"github.com/dpopsuev/rh-rca/store"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 )
 
 // fullCircuitTransformer returns deterministic typed results for all steps,
@@ -14,7 +15,7 @@ import (
 type fullCircuitTransformer struct{}
 
 func (f *fullCircuitTransformer) Name() string { return "test-full" }
-func (f *fullCircuitTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (f *fullCircuitTransformer) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	switch tc.NodeName {
 	case "recall":
 		return map[string]any{"match": true, "confidence": 0.95, "reasoning": "known failure"}, nil
@@ -31,7 +32,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 1, Name: "test-case"}
 
-	storeComp := &framework.Component{
+	storeComp := &engine.Component{
 		Namespace: "store", Name: "test-store",
 		Hooks: StoreHooks(ms, c),
 	}
@@ -43,7 +44,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 		CaseData:    c,
 		CaseLabel:   "T1",
 		CircuitData: circuitData,
-		Components:  []*framework.Component{transComp, storeComp},
+		Components:  []*engine.Component{transComp, storeComp},
 	})
 	if err != nil {
 		t.Fatalf("WalkCase: %v", err)
@@ -76,7 +77,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 type triageInvestigateTransformer struct{}
 
 func (f *triageInvestigateTransformer) Name() string { return "test-triage" }
-func (f *triageInvestigateTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (f *triageInvestigateTransformer) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	switch tc.NodeName {
 	case "recall":
 		return map[string]any{"match": false, "confidence": 0.1}, nil
@@ -99,7 +100,7 @@ func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 2, Name: "test-deep"}
 
-	storeComp := &framework.Component{
+	storeComp := &engine.Component{
 		Namespace: "store", Name: "test-store",
 		Hooks: StoreHooks(ms, c),
 	}
@@ -111,7 +112,7 @@ func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 		CaseData:    c,
 		CaseLabel:   "T2",
 		CircuitData: circuitData,
-		Components:  []*framework.Component{transComp, storeComp},
+		Components:  []*engine.Component{transComp, storeComp},
 	})
 	if err != nil {
 		t.Fatalf("WalkCase: %v", err)
@@ -137,7 +138,7 @@ func TestWalkCase_HITL_Fallback(t *testing.T) {
 		t.Fatalf("BuildRunner: %v", err)
 	}
 
-	walker := framework.NewProcessWalker("test")
+	walker := circuit.NewProcessWalker("test")
 
 	def, err := LoadCircuitDef(circuitData, th)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 
 	"github.com/dpopsuev/rh-rca/store"
 )
@@ -649,7 +649,7 @@ func TestFailureFromContext_Nil(t *testing.T) {
 }
 
 func TestFailureFromContext_FailureParams(t *testing.T) {
-	ws := &framework.WalkerState{Context: map[string]any{}}
+	ws := &circuit.WalkerState{Context: map[string]any{}}
 	ws.Context[KeyParamsFailure] = &FailureParams{
 		TestName:     "T1",
 		ErrorMessage: "err",
@@ -662,7 +662,7 @@ func TestFailureFromContext_FailureParams(t *testing.T) {
 }
 
 func TestFailureFromContext_CaseData(t *testing.T) {
-	ws := &framework.WalkerState{Context: map[string]any{}}
+	ws := &circuit.WalkerState{Context: map[string]any{}}
 	ws.Context[KeyCaseData] = &store.Case{
 		Name:         "T2",
 		ErrorMessage: "err2",

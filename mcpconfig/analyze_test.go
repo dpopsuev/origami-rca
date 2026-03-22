@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
@@ -93,7 +93,7 @@ func TestAnalyze_Heuristic(t *testing.T) {
 	heuristicsData, _ := fs.ReadFile(domainFS, "heuristics.yaml")
 
 	cfg := rca.AnalysisConfig{
-		Components:  []*framework.Component{rca.HeuristicComponent(st, nil, heuristicsData)},
+		Components:  []*engine.Component{rca.HeuristicComponent(st, nil, heuristicsData)},
 		Thresholds:  rca.DefaultThresholds(),
 		BasePath:    t.TempDir(),
 		CircuitData: circuitData,

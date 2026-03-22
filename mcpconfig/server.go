@@ -11,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	fwmcp "github.com/dpopsuev/origami/mcp"
@@ -35,7 +36,7 @@ type Server struct {
 	StateDir        string // writable root for runtime artifacts (calibrate, investigations)
 	ReaderFactory   rca.SourceReaderFactory
 	StoreFactory    rca.StoreFactory
-	SubCircuitResolvers  map[string]framework.AssetResolver
+	SubCircuitResolvers  map[string]circuit.AssetResolver
 	MediatorEndpoint     string
 	StepSchemas          []fwmcp.StepSchema
 	DomainFS             fs.FS
@@ -56,7 +57,7 @@ func WithSourceReader(f rca.SourceReaderFactory) ServerOption {
 // overlay resolution. Keyed by circuit name (e.g., "gnd", "dsr").
 // The consumer (via fold) provides these — the schematic never imports
 // another schematic directly (SOLID: Dependency Inversion).
-func WithSubCircuitResolvers(r map[string]framework.AssetResolver) ServerOption {
+func WithSubCircuitResolvers(r map[string]circuit.AssetResolver) ServerOption {
 	return func(s *Server) { s.SubCircuitResolvers = r }
 }
 
@@ -160,8 +161,8 @@ func (s *Server) readDomainCircuit() []byte {
 
 // loadSubCircuits loads sub-circuit definitions from domain FS using the
 // framework's LoadSubCircuitsFromFS utility with consumer-injected resolvers.
-func (s *Server) loadSubCircuits() map[string]*framework.CircuitDef {
-	return framework.LoadSubCircuitsFromFS(s.DomainFS, s.SubCircuitResolvers)
+func (s *Server) loadSubCircuits() map[string]*circuit.CircuitDef {
+	return circuit.LoadSubCircuitsFromFS(s.DomainFS, s.SubCircuitResolvers)
 }
 
 func (s *Server) buildConfig() fwmcp.CircuitConfig {
@@ -343,13 +344,13 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	tokenTracker := dispatch.NewTokenTracker()
 	tracked := dispatch.NewTokenTrackingDispatcher(disp, tokenTracker)
 
-	var comps []*framework.Component
+	var comps []*engine.Component
 	var transformerLabel string
 	var idMapper rca.IDMappable
 	switch transformerName {
 	case "stub":
 		stub := rca.NewStubTransformer(scenario)
-		comps = []*framework.Component{rca.TransformerComponent(stub)}
+		comps = []*engine.Component{rca.TransformerComponent(stub)}
 		transformerLabel = "stub"
 		idMapper = stub
 	case "basic":
@@ -371,7 +372,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		if s.DomainFS != nil {
 			heuristicsData, _ = fs.ReadFile(s.DomainFS, "heuristics.yaml")
 		}
-		comps = []*framework.Component{rca.HeuristicComponent(basicSt, repoNames, heuristicsData)}
+		comps = []*engine.Component{rca.HeuristicComponent(basicSt, repoNames, heuristicsData)}
 		transformerLabel = "basic"
 	default:
 		t := rca.NewRCATransformer(
@@ -379,7 +380,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			promptFS,
 			rca.WithRCABasePath(basePath),
 		)
-		comps = []*framework.Component{rca.TransformerComponent(t)}
+		comps = []*engine.Component{rca.TransformerComponent(t)}
 		transformerLabel = "rca"
 	}
 
@@ -437,7 +438,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			Renderer:       adapter,
 			CircuitDef:     circuitDef,
 			ScoreCard:      sc,
-			Shared: framework.GraphRegistries{
+			Shared: engine.GraphRegistries{
 				Circuits:         subCircuits,
 				MediatorEndpoint: s.MediatorEndpoint,
 			},

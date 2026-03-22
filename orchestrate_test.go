@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 )
 
 // --- Artifact I/O tests ---
@@ -110,11 +111,11 @@ func TestArtifactFilename(t *testing.T) {
 type noopTransformer struct{}
 
 func (noopTransformer) Name() string { return "noop" }
-func (noopTransformer) Transform(_ context.Context, _ *framework.TransformerContext) (any, error) {
+func (noopTransformer) Transform(_ context.Context, _ *engine.TransformerContext) (any, error) {
 	return nil, nil
 }
 
-func buildTestRunner(t *testing.T) *framework.Runner {
+func buildTestRunner(t *testing.T) *engine.Runner {
 	t.Helper()
 	runner, err := BuildRunner(readInternalTestdata(t, "circuit_rca.yaml"), DefaultThresholds(), TransformerComponent(&noopTransformer{}))
 	if err != nil {
@@ -125,7 +126,7 @@ func buildTestRunner(t *testing.T) *framework.Runner {
 
 // evaluateEdge finds the first matching edge from nodeName and returns
 // (target node, edge ID). Returns ("", "") if no edge matches.
-func evaluateEdge(runner *framework.Runner, nodeName string, art framework.Artifact, ws *framework.WalkerState) (string, string) {
+func evaluateEdge(runner *engine.Runner, nodeName string, art circuit.Artifact, ws *circuit.WalkerState) (string, string) {
 	for _, e := range runner.Graph.EdgesFrom(nodeName) {
 		if tr := e.Evaluate(art, ws); tr != nil {
 			return tr.NextNode, e.ID()
@@ -137,7 +138,7 @@ func evaluateEdge(runner *framework.Runner, nodeName string, art framework.Artif
 func TestEdge_RecallHit(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("recall", map[string]any{"match": true, "prior_rca_id": float64(5), "confidence": 0.9})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "recall", art, ws)
 	if target != "review" || edgeID != "H1" {
@@ -148,7 +149,7 @@ func TestEdge_RecallHit(t *testing.T) {
 func TestEdge_RecallMiss(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("recall", map[string]any{"match": false, "confidence": float64(0)})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "recall", art, ws)
 	if target != "triage" || edgeID != "H2" {
@@ -159,7 +160,7 @@ func TestEdge_RecallMiss(t *testing.T) {
 func TestEdge_RecallUncertain(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("recall", map[string]any{"match": true, "prior_rca_id": float64(5), "confidence": 0.6})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "recall", art, ws)
 	if target != "triage" || edgeID != "H3" {
@@ -170,7 +171,7 @@ func TestEdge_RecallUncertain(t *testing.T) {
 func TestEdge_TriageSkipInfra(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("triage", map[string]any{"symptom_category": "infra", "skip_investigation": true})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "triage", art, ws)
 	if target != "review" || edgeID != "H4" {
@@ -183,7 +184,7 @@ func TestEdge_TriageInvestigate(t *testing.T) {
 	art := WrapNodeArtifact("triage", map[string]any{
 		"symptom_category": "assertion", "skip_investigation": false, "candidate_repos": []any{"repo-a", "repo-b"},
 	})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "triage", art, ws)
 	if target != "resolve" || edgeID != "H6" {
@@ -196,7 +197,7 @@ func TestEdge_TriageSingleRepo(t *testing.T) {
 	art := WrapNodeArtifact("triage", map[string]any{
 		"symptom_category": "assertion", "skip_investigation": false, "candidate_repos": []any{"repo-a"},
 	})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "triage", art, ws)
 	if target != "investigate" || edgeID != "H7" {
@@ -207,7 +208,7 @@ func TestEdge_TriageSingleRepo(t *testing.T) {
 func TestEdge_InvestigateConverged(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("investigate", map[string]any{"convergence_score": 0.85})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
 	if target != "correlate" || edgeID != "H9" {
@@ -220,7 +221,7 @@ func TestEdge_InvestigateLowLoop(t *testing.T) {
 	art := WrapNodeArtifact("investigate", map[string]any{
 		"convergence_score": 0.40, "evidence_refs": []any{"some-evidence"},
 	})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
 	if target != "resolve" || edgeID != "H10" {
@@ -233,7 +234,7 @@ func TestEdge_InvestigateExhausted(t *testing.T) {
 	art := WrapNodeArtifact("investigate", map[string]any{
 		"convergence_score": 0.40, "evidence_refs": []any{"some-evidence"},
 	})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 	ws.LoopCounts["investigate"] = 1
 
 	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
@@ -245,7 +246,7 @@ func TestEdge_InvestigateExhausted(t *testing.T) {
 func TestEdge_ReviewApprove(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("review", map[string]any{"decision": "approve"})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "review", art, ws)
 	if target != "report" || edgeID != "H12" {
@@ -256,7 +257,7 @@ func TestEdge_ReviewApprove(t *testing.T) {
 func TestEdge_ReviewReassess(t *testing.T) {
 	runner := buildTestRunner(t)
 	art := WrapNodeArtifact("review", map[string]any{"decision": "reassess", "loop_target": "investigate"})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "review", art, ws)
 	if target != "resolve" || edgeID != "H13" {
@@ -270,7 +271,7 @@ func TestEdge_ReviewOverturn(t *testing.T) {
 		"decision": "overturn",
 		"human_override": map[string]any{"defect_type": "pb001", "rca_message": "human says this"},
 	})
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, edgeID := evaluateEdge(runner, "review", art, ws)
 	if target != "report" || edgeID != "H14" {
@@ -280,7 +281,7 @@ func TestEdge_ReviewOverturn(t *testing.T) {
 
 func TestEdge_ReportToDone(t *testing.T) {
 	runner := buildTestRunner(t)
-	ws := framework.NewWalkerState("10")
+	ws := circuit.NewWalkerState("10")
 
 	target, _ := evaluateEdge(runner, "report", nil, ws)
 	if target != "DONE" {

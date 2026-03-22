@@ -3,7 +3,7 @@ package rca
 import (
 	"context"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type triageHeuristic struct {
@@ -13,7 +13,7 @@ type triageHeuristic struct {
 func (t *triageHeuristic) Name() string        { return "triage-heuristic" }
 func (t *triageHeuristic) Deterministic() bool { return true }
 
-func (t *triageHeuristic) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *triageHeuristic) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	fp := failureFromContext(tc.WalkerState)
 	text := t.ht.textFromFailure(fp)
 	category, hypothesis, skip := t.ht.classifyDefect(text)

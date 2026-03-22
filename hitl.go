@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
 	"github.com/dpopsuev/origami/schematics/toolkit"
@@ -32,13 +33,13 @@ func RunHITLStep(ctx context.Context, cfg HITLConfig) (*HITLResult, error) {
 	th := DefaultThresholds()
 	walkerID := fmt.Sprintf("case-%d", cfg.CaseData.ID)
 
-	cp, err := framework.NewJSONCheckpointer(cfg.CaseDir)
+	cp, err := engine.NewJSONCheckpointer(cfg.CaseDir)
 	if err != nil {
 		return nil, fmt.Errorf("create checkpointer: %w", err)
 	}
 
 	hitlComp := HITLComponent()
-	storeComp := &framework.Component{
+	storeComp := &engine.Component{
 		Namespace: "store",
 		Name:      "rca-store-hooks",
 		Hooks:     StoreHooks(cfg.Store, cfg.CaseData),
@@ -53,7 +54,7 @@ func RunHITLStep(ctx context.Context, cfg HITLConfig) (*HITLResult, error) {
 		return nil, err
 	}
 
-	wrapped := framework.WrapWithCheckpointer(walker, cp)
+	wrapped := engine.WrapWithCheckpointer(walker, cp)
 	walkErr := runner.Walk(ctx, wrapped, startNode)
 	return buildResult(walker, walkErr)
 }
@@ -64,13 +65,13 @@ func ResumeHITLStep(ctx context.Context, cfg HITLConfig, artifactData []byte) (*
 	th := DefaultThresholds()
 	walkerID := fmt.Sprintf("case-%d", cfg.CaseData.ID)
 
-	cp, err := framework.NewJSONCheckpointer(cfg.CaseDir)
+	cp, err := engine.NewJSONCheckpointer(cfg.CaseDir)
 	if err != nil {
 		return nil, fmt.Errorf("create checkpointer: %w", err)
 	}
 
 	hitlComp := HITLComponent()
-	storeComp := &framework.Component{
+	storeComp := &engine.Component{
 		Namespace: "store",
 		Name:      "rca-store-hooks",
 		Hooks:     StoreHooks(cfg.Store, cfg.CaseData),
@@ -91,21 +92,21 @@ func ResumeHITLStep(ctx context.Context, cfg HITLConfig, artifactData []byte) (*
 	}
 	walker.State().Context["resume_input"] = artifact
 
-	wrapped := framework.WrapWithCheckpointer(walker, cp)
+	wrapped := engine.WrapWithCheckpointer(walker, cp)
 	walkErr := runner.Walk(ctx, wrapped, startNode)
 	return buildResult(walker, walkErr)
 }
 
 // LoadCheckpointState loads the WalkerState from the checkpoint directory.
 // Returns nil, nil if no checkpoint exists.
-func LoadCheckpointState(caseDir string, caseID int64) (*framework.WalkerState, error) {
+func LoadCheckpointState(caseDir string, caseID int64) (*circuit.WalkerState, error) {
 	return toolkit.LoadCheckpointState(caseDir, fmt.Sprintf("case-%d", caseID))
 }
 
-func prepareWalker(cp framework.Checkpointer, walkerID string, cfg HITLConfig) (framework.Walker, string, error) {
+func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg HITLConfig) (circuit.Walker, string, error) {
 	loaded, _ := cp.Load(walkerID)
 
-	walker := framework.NewProcessWalker(walkerID)
+	walker := circuit.NewProcessWalker(walkerID)
 	injectHITLContext(walker.State(), cfg)
 
 	startNode := "recall"
@@ -116,7 +117,7 @@ func prepareWalker(cp framework.Checkpointer, walkerID string, cfg HITLConfig) (
 	return walker, startNode, nil
 }
 
-func injectHITLContext(state *framework.WalkerState, cfg HITLConfig) {
+func injectHITLContext(state *circuit.WalkerState, cfg HITLConfig) {
 	state.Context[KeyStore] = cfg.Store
 	state.Context[KeyCaseData] = cfg.CaseData
 	state.Context[KeyEnvelope] = cfg.Envelope
@@ -127,6 +128,6 @@ func injectHITLContext(state *framework.WalkerState, cfg HITLConfig) {
 	}
 }
 
-func buildResult(walker framework.Walker, walkErr error) (*HITLResult, error) {
+func buildResult(walker circuit.Walker, walkErr error) (*HITLResult, error) {
 	return toolkit.BuildHITLResult(walker, walkErr)
 }

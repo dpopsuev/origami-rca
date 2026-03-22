@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 	"gopkg.in/yaml.v3"
 )
 
 type vocabFile struct {
-	DefectTypes map[string]framework.VocabEntry `yaml:"defect_types"`
-	Stages      map[string]framework.VocabEntry `yaml:"stages"`
-	Metrics     map[string]framework.VocabEntry `yaml:"metrics"`
-	Decisions   map[string]framework.VocabEntry `yaml:"decisions"`
+	DefectTypes map[string]circuit.VocabEntry `yaml:"defect_types"`
+	Stages      map[string]circuit.VocabEntry `yaml:"stages"`
+	Metrics     map[string]circuit.VocabEntry `yaml:"metrics"`
+	Decisions   map[string]circuit.VocabEntry `yaml:"decisions"`
 	// Legacy alias: accepted on read, merged into Decisions.
-	Heuristics map[string]framework.VocabEntry `yaml:"heuristics"`
+	Heuristics map[string]circuit.VocabEntry `yaml:"heuristics"`
 }
 
 // NewVocabulary builds and returns a fully populated RichMapVocabulary
 // containing domain codes: defect types, circuit stages, metrics, and
 // decisions. When data is nil an empty vocabulary is returned.
-func NewVocabulary(data []byte) *framework.RichMapVocabulary {
-	v := framework.NewRichMapVocabulary()
+func NewVocabulary(data []byte) *circuit.RichMapVocabulary {
+	v := circuit.NewRichMapVocabulary()
 	if data == nil {
 		return v
 	}
@@ -47,8 +47,8 @@ func NewVocabulary(data []byte) *framework.RichMapVocabulary {
 }
 
 // deriveStageAliases generates aliases like F0_RECALL from F0 -> "Recall".
-func deriveStageAliases(stages map[string]framework.VocabEntry) map[string]framework.VocabEntry {
-	aliases := make(map[string]framework.VocabEntry)
+func deriveStageAliases(stages map[string]circuit.VocabEntry) map[string]circuit.VocabEntry {
+	aliases := make(map[string]circuit.VocabEntry)
 	for code, entry := range stages {
 		if entry.Long == "" {
 			continue
@@ -60,7 +60,7 @@ func deriveStageAliases(stages map[string]framework.VocabEntry) map[string]frame
 }
 
 // backfillShort sets Short = key for entries loaded via shorthand (string value).
-func backfillShort(m map[string]framework.VocabEntry) {
+func backfillShort(m map[string]circuit.VocabEntry) {
 	for k, e := range m {
 		if e.Short == "" {
 			e.Short = k
@@ -70,7 +70,7 @@ func backfillShort(m map[string]framework.VocabEntry) {
 }
 
 // SourceIssueTag formats a source-provided issue type with a trust indicator.
-func SourceIssueTag(v framework.Vocabulary, issueType string, autoAnalyzed bool) string {
+func SourceIssueTag(v circuit.Vocabulary, issueType string, autoAnalyzed bool) string {
 	if issueType == "" {
 		return ""
 	}
@@ -82,7 +82,7 @@ func SourceIssueTag(v framework.Vocabulary, issueType string, autoAnalyzed bool)
 }
 
 // StagePath converts a slice of stage codes to a human-readable path.
-func StagePath(v framework.Vocabulary, codes []string) string {
+func StagePath(v circuit.Vocabulary, codes []string) string {
 	names := make([]string, len(codes))
 	for i, c := range codes {
 		names[i] = v.Name(c)
@@ -91,7 +91,7 @@ func StagePath(v framework.Vocabulary, codes []string) string {
 }
 
 // ClusterKey humanizes a pipe-delimited cluster key.
-func ClusterKey(v framework.Vocabulary, key string) string {
+func ClusterKey(v circuit.Vocabulary, key string) string {
 	parts := strings.Split(key, "|")
 	for i, p := range parts {
 		if name := v.Name(p); name != p {
@@ -103,7 +103,7 @@ func ClusterKey(v framework.Vocabulary, key string) string {
 
 var (
 	defaultVocab       = NewVocabulary(nil)
-	defaultDefectTypes map[string]framework.VocabEntry
+	defaultDefectTypes map[string]circuit.VocabEntry
 )
 
 // InitVocab replaces the package-level vocabulary with one loaded from data.
@@ -123,7 +123,7 @@ func vocabName(code string) string {
 }
 
 func vocabNameWithCode(code string) string {
-	return framework.NameWithCode(defaultVocab, code)
+	return circuit.NameWithCode(defaultVocab, code)
 }
 
 func vocabStagePath(codes []string) string {

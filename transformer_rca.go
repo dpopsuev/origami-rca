@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/origami/dispatch"
 )
 
@@ -50,7 +50,7 @@ func WithRCABasePath(p string) RCATransformerOption {
 // NewRCATransformer creates an RCA transformer that reads prompt templates
 // from promptFS. Pass DefaultPromptFS for embedded prompts, or os.DirFS(dir)
 // to override with a custom prompt directory.
-func NewRCATransformer(d dispatch.Dispatcher, promptFS fs.FS, opts ...RCATransformerOption) framework.Transformer {
+func NewRCATransformer(d dispatch.Dispatcher, promptFS fs.FS, opts ...RCATransformerOption) engine.Transformer {
 	t := &rcaTransformer{
 		dispatcher: d,
 		promptFS:   promptFS,
@@ -65,7 +65,7 @@ func NewRCATransformer(d dispatch.Dispatcher, promptFS fs.FS, opts ...RCATransfo
 func (t *rcaTransformer) Name() string        { return "rca" }
 func (t *rcaTransformer) Deterministic() bool { return false }
 
-func (t *rcaTransformer) Transform(ctx context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *rcaTransformer) Transform(ctx context.Context, tc *engine.TransformerContext) (any, error) {
 	nodeName := tc.NodeName
 	if nodeName == "" {
 		return nil, fmt.Errorf("rca transformer: empty node name")

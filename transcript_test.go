@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 
 	"github.com/dpopsuev/rh-rca"
 )
@@ -22,7 +22,7 @@ func TestWeaveTranscripts_StubTransformer(t *testing.T) {
 
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -95,7 +95,7 @@ func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -281,7 +281,7 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,

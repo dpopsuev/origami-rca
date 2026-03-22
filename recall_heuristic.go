@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type recallHeuristic struct {
@@ -14,7 +14,7 @@ type recallHeuristic struct {
 func (t *recallHeuristic) Name() string        { return "recall-heuristic" }
 func (t *recallHeuristic) Deterministic() bool { return true }
 
-func (t *recallHeuristic) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *recallHeuristic) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	fp := failureFromContext(tc.WalkerState)
 	fingerprint := ComputeFingerprint(fp.name, fp.errorMessage, "")
 	sym, err := t.ht.st.GetSymptomByFingerprint(fingerprint)

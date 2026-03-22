@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
 	"github.com/dpopsuev/origami/schematics/toolkit"
@@ -34,7 +35,7 @@ type InjectHookOpts struct {
 // InjectHooks creates a HookRegistry with the inject.* before-hooks
 // that populate walker.Context with per-concern template data.
 // Each hook uses WalkerStateFromContext to write into walker.Context.
-func InjectHooks(st store.Store, caseData *store.Case, env *rcatype.Envelope, catalog toolkit.SourceCatalog, caseDir string) framework.HookRegistry {
+func InjectHooks(st store.Store, caseData *store.Case, env *rcatype.Envelope, catalog toolkit.SourceCatalog, caseDir string) engine.HookRegistry {
 	return InjectHooksWithOpts(InjectHookOpts{
 		Store:    st,
 		CaseData: caseData,
@@ -45,8 +46,8 @@ func InjectHooks(st store.Store, caseData *store.Case, env *rcatype.Envelope, ca
 }
 
 // InjectHooksWithOpts creates inject hooks using the full options struct.
-func InjectHooksWithOpts(opts InjectHookOpts) framework.HookRegistry {
-	reg := framework.HookRegistry{}
+func InjectHooksWithOpts(opts InjectHookOpts) engine.HookRegistry {
+	reg := engine.HookRegistry{}
 
 	reg.Register(newInjectEnvelopeHook(opts.Envelope))
 	reg.Register(newInjectFailureHook(opts.CaseData))
@@ -63,43 +64,43 @@ func InjectHooksWithOpts(opts InjectHookOpts) framework.HookRegistry {
 	return reg
 }
 
-func newInjectEnvelopeHook(env *rcatype.Envelope) framework.Hook {
+func newInjectEnvelopeHook(env *rcatype.Envelope) engine.Hook {
 	return toolkit.NewContextInjector("inject.envelope", func(walkerCtx map[string]any) {
 		injectEnvelopeData(env, walkerCtx)
 	})
 }
 
-func newInjectFailureHook(caseData *store.Case) framework.Hook {
+func newInjectFailureHook(caseData *store.Case) engine.Hook {
 	return toolkit.NewContextInjector("inject.failure", func(walkerCtx map[string]any) {
 		injectFailureData(caseData, walkerCtx)
 	})
 }
 
-func newInjectHistoryHook(st store.Store, caseData *store.Case) framework.Hook {
+func newInjectHistoryHook(st store.Store, caseData *store.Case) engine.Hook {
 	return toolkit.NewContextInjector("inject.history", func(walkerCtx map[string]any) {
 		injectHistoryData(st, caseData, walkerCtx)
 	})
 }
 
-func newInjectRecallDigestHook(st store.Store) framework.Hook {
+func newInjectRecallDigestHook(st store.Store) engine.Hook {
 	return toolkit.NewContextInjector("inject.recall-digest", func(walkerCtx map[string]any) {
 		injectRecallDigestData(st, walkerCtx)
 	})
 }
 
-func newInjectSourcesHook(env *rcatype.Envelope, catalog toolkit.SourceCatalog) framework.Hook {
+func newInjectSourcesHook(env *rcatype.Envelope, catalog toolkit.SourceCatalog) engine.Hook {
 	return toolkit.NewContextInjector("inject.sources", func(walkerCtx map[string]any) {
 		injectSourcesData(env, catalog, walkerCtx)
 	})
 }
 
-func newInjectPriorHook(caseDir string) framework.Hook {
+func newInjectPriorHook(caseDir string) engine.Hook {
 	return toolkit.NewContextInjector("inject.prior", func(walkerCtx map[string]any) {
 		injectPriorData(caseDir, walkerCtx)
 	})
 }
 
-func newInjectTaxonomyHook() framework.Hook {
+func newInjectTaxonomyHook() engine.Hook {
 	return toolkit.NewContextInjector("inject.taxonomy", func(walkerCtx map[string]any) {
 		injectTaxonomyData(walkerCtx)
 	})
@@ -272,7 +273,7 @@ func extractSearchKeywords(walkerCtx map[string]any) []string {
 // newInjectCodeKeywordsHook creates a before-hook that extracts search
 // keywords from the walker context and writes them to
 // "dsr.search_keywords" so the GND sub-circuit can use them.
-func newInjectCodeKeywordsHook() framework.Hook {
+func newInjectCodeKeywordsHook() engine.Hook {
 	return toolkit.NewContextInjector("inject.code-keywords", func(walkerCtx map[string]any) {
 		keywords := extractSearchKeywords(walkerCtx)
 		if len(keywords) > 0 {
@@ -284,14 +285,14 @@ func newInjectCodeKeywordsHook() framework.Hook {
 // newBridgeCodeContextHook creates an after-hook that reads the GND
 // circuit's output from delegate artifacts and converts it to *CodeParams
 // for consumption by downstream RCA nodes.
-func newBridgeCodeContextHook() framework.Hook {
-	return framework.NewHookFunc("bridge.code-context", func(ctx context.Context, _ string, art framework.Artifact) error {
-		ws := framework.WalkerStateFromContext(ctx)
+func newBridgeCodeContextHook() engine.Hook {
+	return engine.NewHookFunc("bridge.code-context", func(ctx context.Context, _ string, art circuit.Artifact) error {
+		ws := engine.WalkerStateFromContext(ctx)
 		if ws == nil {
 			return nil
 		}
 
-		da, ok := art.(*framework.DelegateArtifact)
+		da, ok := art.(*engine.DelegateArtifact)
 		if !ok || da == nil {
 			return nil
 		}

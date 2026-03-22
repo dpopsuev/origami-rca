@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/kami"
 	"github.com/dpopsuev/origami/sumi"
 	"github.com/dpopsuev/origami/view"
@@ -603,9 +603,9 @@ func TestStaleness_HTTPResetEndpoint(t *testing.T) {
 // TestStaleness_ResetNilDef verifies CircuitStore.Reset(nil) produces
 // an empty store without panicking.
 func TestStaleness_ResetNilDef(t *testing.T) {
-	def := &framework.CircuitDef{
+	def := &circuit.CircuitDef{
 		Circuit: "test",
-		Nodes:   []framework.NodeDef{{Name: "A"}, {Name: "B"}},
+		Nodes:   []circuit.NodeDef{{Name: "A"}, {Name: "B"}},
 	}
 	store := view.NewCircuitStore(def)
 	defer store.Close()

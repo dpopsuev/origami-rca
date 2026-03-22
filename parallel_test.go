@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 
 	"github.com/dpopsuev/rh-rca"
 )
@@ -17,7 +17,7 @@ func TestParallel_ResultsMatch(t *testing.T) {
 
 	serialCfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -34,7 +34,7 @@ func TestParallel_ResultsMatch(t *testing.T) {
 
 	parallelCfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -80,7 +80,7 @@ func TestParallel_NoRace(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -108,7 +108,7 @@ func TestParallel_AllCasesComplete(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,

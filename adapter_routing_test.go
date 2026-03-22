@@ -7,13 +7,14 @@ import (
 	"sync"
 	"testing"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/circuit"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type echoTransformer struct{ name string }
 
 func (e *echoTransformer) Name() string { return e.name }
-func (e *echoTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (e *echoTransformer) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	return map[string]any{"node": tc.NodeName}, nil
 }
 
@@ -25,9 +26,9 @@ func TestRoutingRecorder_DelegatesToInner(t *testing.T) {
 		t.Errorf("Name() = %q, want %q", rec.Name(), "inner")
 	}
 
-	ws := framework.NewWalkerState("C1")
+	ws := circuit.NewWalkerState("C1")
 	ws.Context[KeyCaseLabel] = "C1"
-	tc := &framework.TransformerContext{
+	tc := &engine.TransformerContext{
 		NodeName:    "recall",
 		WalkerState: ws,
 	}
@@ -46,12 +47,12 @@ func TestRoutingRecorder_LogsEntries(t *testing.T) {
 	inner := &echoTransformer{name: "test"}
 	rec := NewRoutingRecorder(inner, "red")
 
-	ws := framework.NewWalkerState("C1")
+	ws := circuit.NewWalkerState("C1")
 	ws.Context[KeyCaseLabel] = "C1"
 
 	steps := []string{"recall", "triage", "review"}
 	for _, step := range steps {
-		tc := &framework.TransformerContext{NodeName: step, WalkerState: ws}
+		tc := &engine.TransformerContext{NodeName: step, WalkerState: ws}
 		if _, err := rec.Transform(context.Background(), tc); err != nil {
 			t.Fatalf("Transform(%s): %v", step, err)
 		}
@@ -89,9 +90,9 @@ func TestRoutingRecorder_ThreadSafe(t *testing.T) {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
-			ws := framework.NewWalkerState("C1")
+			ws := circuit.NewWalkerState("C1")
 			ws.Context[KeyCaseLabel] = "C1"
-			tc := &framework.TransformerContext{NodeName: "recall", WalkerState: ws}
+			tc := &engine.TransformerContext{NodeName: "recall", WalkerState: ws}
 			rec.Transform(context.Background(), tc)
 		}(i)
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type correlateHeuristic struct {
@@ -15,7 +15,7 @@ type correlateHeuristic struct {
 func (t *correlateHeuristic) Name() string        { return "correlate-heuristic" }
 func (t *correlateHeuristic) Deterministic() bool { return true }
 
-func (t *correlateHeuristic) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *correlateHeuristic) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	fp := failureFromContext(tc.WalkerState)
 	rcas, err := t.ht.st.ListRCAs()
 	if err != nil || len(rcas) == 0 {

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	cal "github.com/dpopsuev/origami/calibrate"
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 
 	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/scenarios"
@@ -51,7 +51,7 @@ func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -129,7 +129,7 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        3,
@@ -164,7 +164,7 @@ func TestFormatReport(t *testing.T) {
 
 	scenario := mustLoadScenario(t, "ptp-mock")
 	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.DefaultRunConfig(scenario, []*framework.Component{rca.TransformerComponent(stub)}, "stub")
+	cfg := rca.DefaultRunConfig(scenario, []*engine.Component{rca.TransformerComponent(stub)}, "stub")
 	cfg.IDMapper = stub
 	cfg.Thresholds = rca.DefaultThresholds()
 	cfg.BasePath = tmpDir
@@ -211,7 +211,7 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
-		Components:    []*framework.Component{rca.TransformerComponent(stub)},
+		Components:    []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:    stub,
 		Runs:        1,
@@ -263,7 +263,7 @@ func TestStubCalibration_PTP(t *testing.T) {
 	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
 		Scenario:        scenario,
-		Components:      []*framework.Component{rca.TransformerComponent(stub)},
+		Components:      []*engine.Component{rca.TransformerComponent(stub)},
 		TransformerName: "stub",
 		IDMapper:        stub,
 		Runs:            1,

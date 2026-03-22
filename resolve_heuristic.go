@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/engine"
 )
 
 type resolveHeuristic struct {
@@ -14,7 +14,7 @@ type resolveHeuristic struct {
 func (t *resolveHeuristic) Name() string        { return "resolve-heuristic" }
 func (t *resolveHeuristic) Deterministic() bool { return true }
 
-func (t *resolveHeuristic) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+func (t *resolveHeuristic) Transform(_ context.Context, tc *engine.TransformerContext) (any, error) {
 	fp := failureFromContext(tc.WalkerState)
 	text := t.ht.textFromFailure(fp)
 	component := t.ht.identifyComponent(text)
