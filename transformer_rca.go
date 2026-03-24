@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/dpopsuev/origami/engine"
-	bd "github.com/dpopsuev/bugle/dispatch"
+	"github.com/dpopsuev/origami/agentport"
 )
 
 const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
@@ -36,7 +36,7 @@ const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
 `
 
 type rcaTransformer struct {
-	dispatcher bd.Dispatcher
+	dispatcher agentport.Dispatcher
 	promptFS   fs.FS
 	basePath   string
 }
@@ -50,7 +50,7 @@ func WithRCABasePath(p string) RCATransformerOption {
 // NewRCATransformer creates an RCA transformer that reads prompt templates
 // from promptFS. Pass DefaultPromptFS for embedded prompts, or os.DirFS(dir)
 // to override with a custom prompt directory.
-func NewRCATransformer(d bd.Dispatcher, promptFS fs.FS, opts ...RCATransformerOption) engine.Transformer {
+func NewRCATransformer(d agentport.Dispatcher, promptFS fs.FS, opts ...RCATransformerOption) engine.Transformer {
 	t := &rcaTransformer{
 		dispatcher: d,
 		promptFS:   promptFS,
@@ -102,7 +102,7 @@ func (t *rcaTransformer) Transform(ctx context.Context, tc *engine.TransformerCo
 		caseLabel = tc.WalkerState.ID
 	}
 
-	data, err := t.dispatcher.Dispatch(ctx, bd.Context{
+	data, err := t.dispatcher.Dispatch(ctx, agentport.Context{
 		CaseID: caseLabel, Step: nodeName,
 		PromptPath: promptFile, ArtifactPath: artifactFile,
 	})
@@ -110,7 +110,7 @@ func (t *rcaTransformer) Transform(ctx context.Context, tc *engine.TransformerCo
 		return nil, fmt.Errorf("rca transformer: dispatch %s/%s: %w", caseLabel, nodeName, err)
 	}
 
-	if f := bd.UnwrapFinalizer(t.dispatcher); f != nil {
+	if f := agentport.UnwrapFinalizer(t.dispatcher); f != nil {
 		f.MarkDone(artifactFile)
 	}
 

@@ -2,7 +2,7 @@ package mcpconfig
 
 import (
 	"github.com/dpopsuev/origami/circuit"
-	"github.com/dpopsuev/bugle/signal"
+	"github.com/dpopsuev/origami/agentport"
 	fwmcp "github.com/dpopsuev/origami/mcp"
 )
 
@@ -14,6 +14,6 @@ import (
 // adds OnSessionCreate and Close for consumer-specific lifecycle.
 type SessionObserver interface {
 	fwmcp.SessionObserver
-	OnSessionCreate(def *circuit.CircuitDef, bus signal.Bus)
+	OnSessionCreate(def *circuit.CircuitDef, bus agentport.Bus)
 	Close()
 }
