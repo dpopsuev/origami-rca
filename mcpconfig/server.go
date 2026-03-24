@@ -15,7 +15,7 @@ import (
 	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
-	bd "github.com/dpopsuev/bugle/dispatch"
+	"github.com/dpopsuev/bugle/dispatch/guard"
 	"github.com/dpopsuev/bugle/signal"
 	"github.com/dpopsuev/bugle/billing"
 	fwmcp "github.com/dpopsuev/origami/mcp"
@@ -345,7 +345,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	basePath := filepath.Join(s.StateDir, "calibrate")
 
 	tokenTracker := billing.NewTracker()
-	tracked := bd.NewTokenTrackingDispatcher(disp, tokenTracker)
+	tracked := guard.NewTokenTrackingDispatcher(disp, tokenTracker)
 
 	var comps []*engine.Component
 	var transformerLabel string
