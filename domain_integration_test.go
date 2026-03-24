@@ -7,8 +7,7 @@ import (
 	"testing"
 	"time"
 
-	mcpserver "github.com/dpopsuev/rh-rca/mcpconfig"
-	"github.com/dpopsuev/rh-rca/scenarios"
+	rca "github.com/dpopsuev/rh-rca"
 
 	"github.com/dpopsuev/origami/domainfs"
 	"github.com/dpopsuev/origami/domainserve"
@@ -63,13 +62,13 @@ func TestDomainIntegration_ScenarioLoadingOverMCP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fs.Sub scenarios: %v", err)
 	}
-	names := scenarios.ListScenarios(scenarioFS)
+	names := rca.ListScenarios(scenarioFS)
 	if len(names) == 0 {
 		t.Fatal("expected at least one scenario via MCPRemoteFS")
 	}
 	t.Logf("scenarios via MCPRemoteFS: %v", names)
 
-	scenario, err := scenarios.LoadScenario(scenarioFS, "ptp-mock")
+	scenario, err := rca.LoadScenario(scenarioFS, "ptp-mock")
 	if err != nil {
 		t.Fatalf("LoadScenario via MCPRemoteFS: %v", err)
 	}
@@ -103,9 +102,9 @@ func TestDomainIntegration_StubCalibrationOverMCP(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	engineSrv := mcpserver.NewServer("test-rca",
-		mcpserver.WithDomainFS(remoteFS),
-		mcpserver.WithStateDir(t.TempDir()),
+	engineSrv := rca.NewServer("test-rca",
+		rca.WithDomainFS(remoteFS),
+		rca.WithStateDir(t.TempDir()),
 	)
 	engineSrv.ProjectRoot = projectRoot(t)
 	t.Cleanup(engineSrv.Shutdown)

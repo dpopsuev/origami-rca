@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	mcpserver "github.com/dpopsuev/rh-rca/mcpconfig"
+	rca "github.com/dpopsuev/rh-rca"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func TestMain(m *testing.M) {
-	mcpserver.DefaultGetNextStepTimeout = 1 * time.Second
+	rca.DefaultGetNextStepTimeout = 1 * time.Second
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelError,
 	})))
@@ -68,18 +68,18 @@ func testDomainFS(t *testing.T) fs.FS {
 	return os.DirFS(filepath.Join(filepath.Dir(f), "testdata_mcp"))
 }
 
-func newTestServer(t *testing.T) *mcpserver.Server {
+func newTestServer(t *testing.T) *rca.Server {
 	t.Helper()
-	srv := mcpserver.NewServer("test-rca",
-		mcpserver.WithDomainFS(testDomainFS(t)),
-		mcpserver.WithStateDir(t.TempDir()),
+	srv := rca.NewServer("test-rca",
+		rca.WithDomainFS(testDomainFS(t)),
+		rca.WithStateDir(t.TempDir()),
 	)
 	srv.ProjectRoot = projectRoot(t)
 	t.Cleanup(srv.Shutdown)
 	return srv
 }
 
-func connectInMemory(t *testing.T, ctx context.Context, srv *mcpserver.Server) *sdkmcp.ClientSession {
+func connectInMemory(t *testing.T, ctx context.Context, srv *rca.Server) *sdkmcp.ClientSession {
 	t.Helper()
 	t1, t2 := sdkmcp.NewInMemoryTransports()
 	serverSession, err := srv.MCPServer.Connect(ctx, t1, nil)
@@ -1150,7 +1150,7 @@ defs:
 	if err := os.WriteFile(filepath.Join(dir, "F0_RECALL.yaml"), data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	schemas, err := mcpserver.LoadStepSchemas(os.DirFS(dir))
+	schemas, err := rca.LoadStepSchemas(os.DirFS(dir))
 	if err != nil {
 		t.Fatalf("LoadStepSchemas: %v", err)
 	}
@@ -1184,7 +1184,7 @@ fields:
 	if err := os.WriteFile(filepath.Join(dir, "F0_RECALL.yaml"), data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	schemas, err := mcpserver.LoadStepSchemas(os.DirFS(dir))
+	schemas, err := rca.LoadStepSchemas(os.DirFS(dir))
 	if err != nil {
 		t.Fatalf("LoadStepSchemas: %v", err)
 	}

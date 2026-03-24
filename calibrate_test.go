@@ -14,7 +14,6 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/rh-rca"
-	"github.com/dpopsuev/rh-rca/scenarios"
 )
 
 func calibrateScenarioName() string {
@@ -48,7 +47,7 @@ func loadCalibrationScenario(t *testing.T, domainFS fs.FS) *rca.Scenario {
 	if err != nil {
 		t.Fatalf("sub scenarios: %v", err)
 	}
-	scenario, err := scenarios.LoadScenario(scenarioFS, calibrateScenarioName())
+	scenario, err := rca.LoadScenario(scenarioFS, calibrateScenarioName())
 	if err != nil {
 		t.Fatalf("load scenario %s: %v", calibrateScenarioName(), err)
 	}
