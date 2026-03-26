@@ -5,14 +5,13 @@ go 1.25.7
 require (
 	github.com/dpopsuev/origami v0.2.0
 	github.com/google/go-cmp v0.7.0
-	github.com/modelcontextprotocol/go-sdk v1.3.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
-	github.com/dpopsuev/bugle v0.10.0 // indirect
+	github.com/dpopsuev/bugle v0.12.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
@@ -20,6 +19,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.7.8 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/modelcontextprotocol/go-sdk v1.3.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
