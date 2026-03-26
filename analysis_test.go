@@ -1,11 +1,12 @@
 package rca_test
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/dpopsuev/rh-rca/store"
-	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/origami/engine"
+	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/rh-rca/store"
 )
 
 func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
@@ -173,7 +174,7 @@ func TestFormatAnalysisReport_Structure(t *testing.T) {
 		"PTP clock offset exceeded threshold",
 	}
 	for _, check := range checks {
-		if !containsStr(output, check) {
+		if !strings.Contains(output, check) {
 			t.Errorf("report missing expected text: %q", check)
 		}
 	}

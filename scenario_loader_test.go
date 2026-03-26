@@ -14,7 +14,7 @@ import (
 
 func scenarioTestFS() fs.FS {
 	_, f, _, _ := runtime.Caller(0)
-	return os.DirFS(filepath.Join(filepath.Dir(f), "testdata"))
+	return os.DirFS(filepath.Join(filepath.Dir(f), "testdata", "scenarios"))
 }
 
 func TestLoadScenario_AllValid(t *testing.T) {
