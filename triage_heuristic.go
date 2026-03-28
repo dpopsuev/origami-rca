@@ -20,7 +20,7 @@ func (t *triageHeuristic) Transform(_ context.Context, tc *engine.TransformerCon
 	component := t.ht.identifyComponent(text)
 
 	var candidateRepos []any
-	if component != "unknown" {
+	if component != valueUnknown {
 		candidateRepos = []any{component}
 	} else {
 		for _, r := range t.ht.repos {

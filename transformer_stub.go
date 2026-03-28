@@ -59,19 +59,19 @@ func (t *stubTransformer) Transform(_ context.Context, tc *engine.TransformerCon
 	}
 
 	switch nodeName {
-	case "recall":
+	case nodeRecall:
 		return t.buildRecall(gtCase), nil
-	case "triage":
+	case nodeTriage:
 		return t.buildTriage(gtCase), nil
-	case "resolve":
+	case nodeResolve:
 		return t.buildResolve(gtCase), nil
-	case "investigate":
+	case nodeInvestigate:
 		return t.buildInvestigate(gtCase), nil
-	case "correlate":
+	case nodeCorrelate:
 		return t.buildCorrelate(gtCase), nil
-	case "review":
+	case nodeReview:
 		return t.buildReview(gtCase), nil
-	case "report":
+	case nodeReport:
 		return t.buildReport(gtCase), nil
 	default:
 		return nil, fmt.Errorf("stub transformer: no response for node %s", nodeName)
@@ -97,25 +97,25 @@ func (t *stubTransformer) findRCA(id string) *GroundTruthRCA {
 }
 
 func (t *stubTransformer) buildRecall(c *GroundTruthCase) map[string]any {
-	if c.ExpectedRecall != nil {
-		m := map[string]any{
-			"match":      c.ExpectedRecall.Match,
-			"confidence": c.ExpectedRecall.Confidence,
-		}
-		if c.ExpectedRecall.Match {
-			m["reasoning"] = fmt.Sprintf("Recalled prior RCA for symptom matching case %s", c.ID)
-			if c.RCAID != "" {
-				m["prior_rca_id"] = float64(t.getRCAID(c.RCAID))
-			}
-			if c.SymptomID != "" {
-				m["symptom_id"] = float64(t.getSymptomID(c.SymptomID))
-			}
-		} else {
-			m["reasoning"] = "No prior RCA found matching this failure pattern"
-		}
+	if c.ExpectedRecall == nil {
+		return map[string]any{"match": false, "confidence": 0.0, "reasoning": "no recall data"}
+	}
+	m := map[string]any{
+		"match":      c.ExpectedRecall.Match,
+		"confidence": c.ExpectedRecall.Confidence,
+	}
+	if !c.ExpectedRecall.Match {
+		m["reasoning"] = "No prior RCA found matching this failure pattern"
 		return m
 	}
-	return map[string]any{"match": false, "confidence": 0.0, "reasoning": "no recall data"}
+	m["reasoning"] = fmt.Sprintf("Recalled prior RCA for symptom matching case %s", c.ID)
+	if c.RCAID != "" {
+		m["prior_rca_id"] = float64(t.getRCAID(c.RCAID))
+	}
+	if c.SymptomID != "" {
+		m["symptom_id"] = float64(t.getSymptomID(c.SymptomID))
+	}
+	return m
 }
 
 func (t *stubTransformer) buildTriage(c *GroundTruthCase) map[string]any {
@@ -129,7 +129,7 @@ func (t *stubTransformer) buildTriage(c *GroundTruthCase) map[string]any {
 			"cascade_suspected":      c.ExpectedTriage.CascadeSuspected,
 		}
 	}
-	return map[string]any{"symptom_category": "unknown"}
+	return map[string]any{"symptom_category": valueUnknown}
 }
 
 func (t *stubTransformer) buildResolve(c *GroundTruthCase) map[string]any {

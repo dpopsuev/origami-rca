@@ -11,7 +11,7 @@ import (
 func TestLoadAlwaysReadSources_HappyPath(t *testing.T) {
 	dir := t.TempDir()
 	docPath := filepath.Join(dir, "architecture.md")
-	os.WriteFile(docPath, []byte("# PTP Architecture\nlinuxptp-daemon is a pod."), 0644)
+	os.WriteFile(docPath, []byte("# PTP Architecture\nlinuxptp-daemon is a pod."), 0o644)
 
 	cat := &toolkit.SliceCatalog{
 		Items: []toolkit.Source{

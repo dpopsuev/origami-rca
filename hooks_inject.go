@@ -152,9 +152,9 @@ func ParamsFromContext(walkerCtx map[string]any) *TemplateParams {
 
 	if _, ok := walkerCtx[KeyParamsEnvelope].(*EnvelopeParams); ok {
 		if env, ok := walkerCtx[KeyEnvelope].(*rcatype.Envelope); ok {
-			for _, f := range env.FailureList {
+			for i := range env.FailureList {
 				params.Siblings = append(params.Siblings, SiblingParams{
-					ID: f.ID, Name: f.Name, Status: f.Status,
+					ID: env.FailureList[i].ID, Name: env.FailureList[i].Name, Status: env.FailureList[i].Status,
 				})
 			}
 		}
@@ -243,29 +243,53 @@ func extractSearchKeywords(walkerCtx map[string]any) []string {
 			keywords = append(keywords, fp.TestName)
 		}
 	}
-	if prior, ok := walkerCtx[KeyParamsPrior].(*PriorParams); ok && prior != nil {
-		if triage := (*prior)["Triage"]; triage != nil {
-			if repos, ok := triage["candidate_repos"].([]any); ok {
-				for _, r := range repos {
-					if s, ok := r.(string); ok {
-						keywords = append(keywords, s)
-					}
-				}
-			}
-		}
-		if resolve := (*prior)["Resolve"]; resolve != nil {
-			if repos, ok := resolve["selected_repos"].([]any); ok {
-				for _, r := range repos {
-					if rm, ok := r.(map[string]any); ok {
-						if name, ok := rm["name"].(string); ok {
-							keywords = append(keywords, name)
-						}
-					}
-				}
-			}
+	prior, ok := walkerCtx[KeyParamsPrior].(*PriorParams)
+	if !ok || prior == nil {
+		return keywords
+	}
+	keywords = append(keywords, extractPriorCandidateRepos(prior)...)
+	keywords = append(keywords, extractPriorSelectedRepos(prior)...)
+	return keywords
+}
+
+func extractPriorCandidateRepos(prior *PriorParams) []string {
+	triage := (*prior)["Triage"]
+	if triage == nil {
+		return nil
+	}
+	repos, ok := triage["candidate_repos"].([]any)
+	if !ok {
+		return nil
+	}
+	var result []string
+	for _, r := range repos {
+		if s, ok := r.(string); ok {
+			result = append(result, s)
 		}
 	}
-	return keywords
+	return result
+}
+
+func extractPriorSelectedRepos(prior *PriorParams) []string {
+	resolve := (*prior)["Resolve"]
+	if resolve == nil {
+		return nil
+	}
+	repos, ok := resolve["selected_repos"].([]any)
+	if !ok {
+		return nil
+	}
+	var result []string
+	for _, r := range repos {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if name, ok := rm["name"].(string); ok {
+			result = append(result, name)
+		}
+	}
+	return result
 }
 
 // Circuit-composition bridge hooks

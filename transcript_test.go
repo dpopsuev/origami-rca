@@ -32,7 +32,7 @@ func TestWeaveTranscripts_StubTransformer(t *testing.T) {
 		CircuitData: testCircuitData(t),
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	report, err := rca.RunCalibration(context.Background(), &cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 		CircuitData: testCircuitData(t),
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	report, err := rca.RunCalibration(context.Background(), &cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 		CircuitData: testCircuitData(t),
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	report, err := rca.RunCalibration(context.Background(), &cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -302,7 +302,7 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 	}
 
 	transcriptDir := filepath.Join(tmpDir, "transcripts")
-	if err := os.MkdirAll(transcriptDir, 0755); err != nil {
+	if err := os.MkdirAll(transcriptDir, 0o755); err != nil {
 		t.Fatalf("create transcript dir: %v", err)
 	}
 
@@ -313,7 +313,7 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 			t.Fatalf("RenderTranscript %s: %v", slug, renderErr)
 		}
 		tPath := filepath.Join(transcriptDir, slug+".md")
-		if err := os.WriteFile(tPath, []byte(md), 0644); err != nil {
+		if err := os.WriteFile(tPath, []byte(md), 0o644); err != nil {
 			t.Fatalf("write transcript: %v", err)
 		}
 	}

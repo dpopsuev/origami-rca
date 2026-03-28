@@ -72,7 +72,7 @@ func (t *heuristicTransformer) textFromFailure(fp failureInfo) string {
 func (t *heuristicTransformer) classifyDefect(text string) (category, hypothesis string, skip bool) {
 	result, _, err := t.eval.Evaluate("defect_classification", text)
 	if err != nil {
-		return "product", "pb001", false
+		return categoryProduct, defectPB001, false
 	}
 	return parseClassification(result)
 }
@@ -80,16 +80,16 @@ func (t *heuristicTransformer) classifyDefect(text string) (category, hypothesis
 func parseClassification(result any) (category, hypothesis string, skip bool) {
 	m, ok := result.(map[string]any)
 	if !ok {
-		return "product", "pb001", false
+		return categoryProduct, defectPB001, false
 	}
 	cat, _ := m["category"].(string)
 	hypo, _ := m["hypothesis"].(string)
 	sk, _ := m["skip"].(bool)
 	if cat == "" {
-		cat = "product"
+		cat = categoryProduct
 	}
 	if hypo == "" {
-		hypo = "pb001"
+		hypo = defectPB001
 	}
 	return cat, hypo, sk
 }
@@ -98,7 +98,7 @@ func parseClassification(result any) (category, hypothesis string, skip bool) {
 func (t *heuristicTransformer) identifyComponent(text string) string {
 	rs, err := t.eval.Get("component_identification")
 	if err != nil {
-		return "unknown"
+		return valueUnknown
 	}
 	return rs.EvaluateString(text)
 }
@@ -131,7 +131,7 @@ func (t *heuristicTransformer) buildTriage(fp failureInfo) map[string]any {
 	component := t.identifyComponent(text)
 
 	var candidateRepos []any
-	if component != "unknown" {
+	if component != valueUnknown {
 		candidateRepos = []any{component}
 	} else {
 		for _, r := range t.repos {
@@ -155,7 +155,7 @@ func (t *heuristicTransformer) buildResolve(fp failureInfo) map[string]any {
 	text := t.textFromFailure(fp)
 	component := t.identifyComponent(text)
 	var repos []any
-	if component != "unknown" {
+	if component != valueUnknown {
 		repos = append(repos, map[string]any{"name": component, "reason": fmt.Sprintf("keyword-identified component: %s", component)})
 	} else {
 		for _, name := range t.repos {
@@ -178,12 +178,12 @@ func (t *heuristicTransformer) buildInvestigate(fp failureInfo) map[string]any {
 	if fp.name != "" {
 		rcaParts = append(rcaParts, fmt.Sprintf("Test: %s", fp.name))
 	}
-	if component != "unknown" {
+	if component != valueUnknown {
 		rcaParts = append(rcaParts, fmt.Sprintf("Suspected component: %s", component))
 	}
 	rcaMessage := strings.Join(rcaParts, " | ")
 	if rcaMessage == "" {
-		rcaMessage = "investigation pending (no error message available)"
+		rcaMessage = valueInvestigationPending
 	}
 
 	convergence := t.computeConvergence(text, component)
@@ -225,7 +225,7 @@ func (t *heuristicTransformer) buildGapBrief(fp failureInfo, text, component, de
 	if !jiraIDPattern.MatchString(text) {
 		gaps = append(gaps, EvidenceGap{Category: GapJiraContext, Description: "No Jira ticket references found in the failure data", WouldHelp: "Linked Jira ticket description would confirm or deny the hypothesis", Source: "Jira / issue tracker"})
 	}
-	if component == "unknown" {
+	if component == valueUnknown {
 		gaps = append(gaps, EvidenceGap{Category: GapSourceCode, Description: "Could not identify the affected component from available data", WouldHelp: "Source code inspection would confirm the suspected regression", Source: "Git repository"})
 	}
 	if matchCount(text, t.conv.VersionKW) == 0 {
@@ -265,7 +265,7 @@ func (t *heuristicTransformer) buildCorrelate(fp failureInfo) map[string]any {
 }
 
 func (t *heuristicTransformer) computeConvergence(text, component string) float64 {
-	if component == "unknown" {
+	if component == valueUnknown {
 		return 0.70
 	}
 	score := 0.70
@@ -296,10 +296,10 @@ func matchCount(text string, keywords []string) int {
 
 var jiraIDPattern = regexp.MustCompile(`(?i)(OCPBUGS-\d+|CNF-\d+)`)
 
-func extractEvidenceRefs(errorMessage string, component string) []string {
+func extractEvidenceRefs(errorMessage, component string) []string {
 	var refs []string
 	seen := make(map[string]bool)
-	if component != "" && component != "unknown" {
+	if component != "" && component != valueUnknown {
 		ref := component + ":relevant_source_file"
 		refs = append(refs, ref)
 		seen[ref] = true

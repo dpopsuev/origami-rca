@@ -55,8 +55,9 @@ func buildAnalysisScaffolding(t *testing.T, st store.Store, env *rcatype.Envelop
 	lID, _ := st.CreateLaunch(&store.Launch{CircuitID: pID, Name: env.Name, Status: "active"})
 	jID, _ := st.CreateJob(&store.Job{LaunchID: lID, Name: "analysis", Status: "active"})
 
-	var cases []*store.Case
-	for _, f := range env.FailureList {
+	cases := make([]*store.Case, 0, len(env.FailureList))
+	for i := range env.FailureList {
+		f := &env.FailureList[i]
 		c := &store.Case{
 			JobID:        jID,
 			LaunchID:     lID,
@@ -100,7 +101,7 @@ func TestAnalyze_Heuristic(t *testing.T) {
 		Envelope:    env,
 	}
 
-	report, err := rca.RunAnalysis(st, cases, suiteID, cfg)
+	report, err := rca.RunAnalysis(st, cases, suiteID, &cfg)
 	if err != nil {
 		t.Fatalf("analysis failed: %v", err)
 	}

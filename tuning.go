@@ -18,14 +18,14 @@ func LoadQuickWins(data []byte) []QuickWin {
 
 // TuningRunner adapts the generic toolkit runner to include RCA's RunConfig.
 type TuningRunner struct {
-	Config       RunConfig
+	Config       *RunConfig
 	QuickWins    []QuickWin
 	TargetM19    float64
 	MaxNoImprove int
 }
 
 // NewTuningRunner creates a runner with default stop conditions.
-func NewTuningRunner(cfg RunConfig, qws []QuickWin) *TuningRunner {
+func NewTuningRunner(cfg *RunConfig, qws []QuickWin) *TuningRunner {
 	return &TuningRunner{
 		Config:       cfg,
 		QuickWins:    qws,

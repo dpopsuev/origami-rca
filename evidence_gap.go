@@ -48,7 +48,7 @@ const DefaultGapInconclusiveThreshold = 0.50
 // ClassifyVerdict determines the verdict based on convergence score and
 // defect type. An unknown defect type forces inconclusive regardless of score.
 func ClassifyVerdict(convergence float64, defectType string, confidentThreshold, inconclusiveThreshold float64) string {
-	if defectType == "unknown" || defectType == "" {
+	if defectType == valueUnknown || defectType == "" {
 		return VerdictInconclusive
 	}
 	if convergence >= confidentThreshold {

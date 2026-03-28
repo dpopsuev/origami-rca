@@ -30,13 +30,6 @@ func calibrateBackend() string {
 	return "stub"
 }
 
-func calibrateMode() string {
-	if v := os.Getenv("CALIBRATE_MODE"); v != "" {
-		return v
-	}
-	return "offline"
-}
-
 func calibrateResolution() string {
 	return os.Getenv("CALIBRATE_RESOLUTION")
 }
@@ -157,40 +150,7 @@ func TestCalibrate(t *testing.T) {
 	}
 
 	if res := calibrateResolution(); res != "" {
-		resolution, err := cal.ParseResolution(res)
-		if err != nil {
-			t.Fatalf("parse resolution: %v", err)
-		}
-		harnessConfig.Resolution = resolution
-
-		// Load port stubs for isolated resolutions from domain FS.
-		stubsDir := fmt.Sprintf("stubs/%s", res)
-		if domainFS != nil {
-			stubFS, fsErr := fs.Sub(domainFS, stubsDir)
-			if fsErr == nil {
-				ps := cal.PortStubs{}
-				entries, _ := fs.ReadDir(stubFS, ".")
-				for _, e := range entries {
-					if e.IsDir() {
-						continue
-					}
-					data, readErr := fs.ReadFile(stubFS, e.Name())
-					if readErr != nil {
-						continue
-					}
-					var v any
-					if jsonErr := json.Unmarshal(data, &v); jsonErr != nil {
-						continue
-					}
-					portName := e.Name()[:len(e.Name())-len(".json")]
-					ps[portName] = v
-				}
-				if len(ps) > 0 {
-					harnessConfig.PortStubs = ps
-				}
-			}
-		}
-		t.Logf("calibration resolution: %s (port stubs: %d)", res, len(harnessConfig.PortStubs))
+		applyResolution(t, &harnessConfig, domainFS, res)
 	}
 
 	genReport, err := cal.Run(ctx, harnessConfig)
@@ -215,4 +175,47 @@ func TestCalibrate(t *testing.T) {
 		t.Errorf("calibration: %d/%d metrics passed (expected >= %d)", passed, total, minPass)
 	}
 	t.Logf("calibration: %d/%d metrics passed", passed, total)
+}
+
+func applyResolution(t *testing.T, harnessConfig *cal.HarnessConfig, domainFS fs.FS, res string) {
+	t.Helper()
+	resolution, err := cal.ParseResolution(res)
+	if err != nil {
+		t.Fatalf("parse resolution: %v", err)
+	}
+	harnessConfig.Resolution = resolution
+
+	ps := loadPortStubs(domainFS, fmt.Sprintf("stubs/%s", res))
+	if len(ps) > 0 {
+		harnessConfig.PortStubs = ps
+	}
+	t.Logf("calibration resolution: %s (port stubs: %d)", res, len(harnessConfig.PortStubs))
+}
+
+func loadPortStubs(domainFS fs.FS, stubsDir string) cal.PortStubs {
+	if domainFS == nil {
+		return nil
+	}
+	stubFS, fsErr := fs.Sub(domainFS, stubsDir)
+	if fsErr != nil {
+		return nil
+	}
+	ps := cal.PortStubs{}
+	entries, _ := fs.ReadDir(stubFS, ".")
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, readErr := fs.ReadFile(stubFS, e.Name())
+		if readErr != nil {
+			continue
+		}
+		var v any
+		if jsonErr := json.Unmarshal(data, &v); jsonErr != nil {
+			continue
+		}
+		portName := e.Name()[:len(e.Name())-len(".json")]
+		ps[portName] = v
+	}
+	return ps
 }

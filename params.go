@@ -87,7 +87,7 @@ func loadAlwaysReadSources(catalog toolkit.SourceCatalog) []AlwaysReadSource {
 	if len(alwaysSources) == 0 {
 		return nil
 	}
-	var result []AlwaysReadSource
+	result := make([]AlwaysReadSource, 0, len(alwaysSources))
 	for _, s := range alwaysSources {
 		if s.LocalPath == "" {
 			continue

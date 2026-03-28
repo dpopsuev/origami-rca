@@ -15,15 +15,15 @@ func applyStoreEffects(
 	artifact any,
 ) error {
 	switch nodeName {
-	case "recall":
+	case nodeRecall:
 		return applyRecallEffects(st, caseData, artifact)
-	case "triage":
+	case nodeTriage:
 		return applyTriageEffects(st, caseData, artifact)
-	case "investigate":
+	case nodeInvestigate:
 		return applyInvestigateEffects(st, caseData, artifact)
-	case "correlate":
+	case nodeCorrelate:
 		return applyCorrelateEffects(st, caseData, artifact)
-	case "review":
+	case nodeReview:
 		return applyReviewEffects(st, caseData, artifact)
 	}
 	return nil
@@ -100,10 +100,10 @@ func applyTriageEffects(st store.Store, caseData *store.Case, artifact any) erro
 			slog.Warn("link case to symptom failed", "component", "orchestrate", "error", err)
 		}
 	}
-	if err := st.UpdateCaseStatus(caseData.ID, "triaged"); err != nil {
+	if err := st.UpdateCaseStatus(caseData.ID, statusTriaged); err != nil {
 		return fmt.Errorf("update case status after triage: %w", err)
 	}
-	caseData.Status = "triaged"
+	caseData.Status = statusTriaged
 	return nil
 }
 
@@ -135,11 +135,11 @@ func applyInvestigateEffects(st store.Store, caseData *store.Case, artifact any)
 	if err := st.LinkCaseToRCA(caseData.ID, rcaID); err != nil {
 		return fmt.Errorf("link case to rca: %w", err)
 	}
-	if err := st.UpdateCaseStatus(caseData.ID, "investigated"); err != nil {
+	if err := st.UpdateCaseStatus(caseData.ID, statusInvestigated); err != nil {
 		return fmt.Errorf("update case status: %w", err)
 	}
 	caseData.RCAID = rcaID
-	caseData.Status = "investigated"
+	caseData.Status = statusInvestigated
 
 	if caseData.SymptomID != 0 {
 		link := &store.SymptomRCA{
@@ -190,29 +190,35 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 	}
 	decision := mapStr(m, "decision")
 	if decision == "approve" {
-		if err := st.UpdateCaseStatus(caseData.ID, "reviewed"); err != nil {
+		if err := st.UpdateCaseStatus(caseData.ID, statusReviewed); err != nil {
 			return fmt.Errorf("update case after review: %w", err)
 		}
-		caseData.Status = "reviewed"
+		caseData.Status = statusReviewed
 	}
 	if decision == "overturn" {
-		override := mapMap(m, "human_override")
-		if override != nil && caseData.RCAID != 0 {
-			rca, err := st.GetRCA(caseData.RCAID)
-			if err == nil && rca != nil {
-				rca.Description = mapStr(override, "rca_message")
-				rca.DefectType = mapStr(override, "defect_type")
-				if _, err := st.SaveRCA(rca); err != nil {
-					slog.Warn("update RCA after overturn failed", "component", "orchestrate", "error", err)
-				}
-			}
-		}
-		if err := st.UpdateCaseStatus(caseData.ID, "reviewed"); err != nil {
+		applyOverturnOverride(st, caseData, m)
+		if err := st.UpdateCaseStatus(caseData.ID, statusReviewed); err != nil {
 			return fmt.Errorf("update case after overturn: %w", err)
 		}
-		caseData.Status = "reviewed"
+		caseData.Status = statusReviewed
 	}
 	return nil
+}
+
+func applyOverturnOverride(st store.Store, caseData *store.Case, m map[string]any) {
+	override := mapMap(m, "human_override")
+	if override == nil || caseData.RCAID == 0 {
+		return
+	}
+	rca, err := st.GetRCA(caseData.RCAID)
+	if err != nil || rca == nil {
+		return
+	}
+	rca.Description = mapStr(override, "rca_message")
+	rca.DefectType = mapStr(override, "defect_type")
+	if _, err := st.SaveRCA(rca); err != nil {
+		slog.Warn("update RCA after overturn failed", "component", "orchestrate", "error", err)
+	}
 }
 
 // ComputeFingerprint generates a deterministic fingerprint from failure attributes.

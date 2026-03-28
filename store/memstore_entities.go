@@ -16,7 +16,7 @@ func (s *MemStore) CreateSuite(suite *InvestigationSuite) (int64, error) {
 		return 0, fmt.Errorf("suite is nil")
 	}
 	if suite.Status == "" {
-		suite.Status = "open"
+		suite.Status = StatusOpen
 	}
 	if suite.CreatedAt == "" {
 		suite.CreatedAt = now()
@@ -196,7 +196,7 @@ func (s *MemStore) CreateCase(c *Case) (int64, error) {
 		return 0, fmt.Errorf("case is nil")
 	}
 	if c.Status == "" {
-		c.Status = "open"
+		c.Status = StatusOpen
 	}
 	if c.CreatedAt == "" {
 		c.CreatedAt = now()
@@ -293,7 +293,7 @@ func (s *MemStore) CreateSymptom(sym *Symptom) (int64, error) {
 		return 0, fmt.Errorf("symptom with fingerprint %q already exists", sym.Fingerprint)
 	}
 	if sym.Status == "" {
-		sym.Status = "active"
+		sym.Status = StatusActive
 	}
 	if sym.OccurrenceCount == 0 {
 		sym.OccurrenceCount = 1
@@ -345,8 +345,8 @@ func (s *MemStore) UpdateSymptomSeen(id int64) error {
 	return s.mes.Mutate("symptoms", id, func(r sqlite.Row) {
 		r["occurrence_count"] = r.Int64("occurrence_count") + 1
 		r["last_seen_at"] = now()
-		if r.String("status") == "dormant" {
-			r["status"] = "active"
+		if r.String("status") == StatusDormant {
+			r["status"] = StatusActive
 		}
 	})
 }
@@ -368,8 +368,8 @@ func (s *MemStore) SnapshotSymptoms() []*Symptom {
 func (s *MemStore) MarkDormantSymptoms(staleDays int) (int64, error) {
 	cutoff := time.Now().UTC().AddDate(0, 0, -staleDays).Format(time.RFC3339)
 	return s.mes.MutateAll("symptoms", func(r sqlite.Row) bool {
-		if r.String("status") == "active" && r.String("last_seen_at") < cutoff {
-			r["status"] = "dormant"
+		if r.String("status") == StatusActive && r.String("last_seen_at") < cutoff {
+			r["status"] = StatusDormant
 			return true
 		}
 		return false
@@ -397,7 +397,7 @@ func (s *MemStore) SaveRCA(rca *RCA) (int64, error) {
 		}
 	}
 	if rca.Status == "" {
-		rca.Status = "open"
+		rca.Status = StatusOpen
 	}
 	if rca.CreatedAt == "" {
 		rca.CreatedAt = now()
@@ -441,13 +441,13 @@ func (s *MemStore) ListRCAsByStatus(status string) ([]*RCA, error) {
 func (s *MemStore) UpdateRCAStatus(id int64, status string) error {
 	set := sqlite.Row{"status": status}
 	switch status {
-	case "resolved":
+	case StatusResolved:
 		set["resolved_at"] = now()
-	case "verified":
+	case StatusVerified:
 		set["verified_at"] = now()
-	case "archived":
+	case StatusArchived:
 		set["archived_at"] = now()
-	case "open":
+	case StatusOpen:
 		set["resolved_at"] = ""
 		set["verified_at"] = ""
 	}

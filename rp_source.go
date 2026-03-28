@@ -50,7 +50,7 @@ func ResolveRPCases(fetcher rcatype.EnvelopeFetcher, scenario *Scenario) error {
 		}
 		if item.Tags != nil {
 			c.SourceIssueType = item.Tags["rp.issue_type"]
-			c.SourceAutoAnalyzed = item.Tags["rp.auto_analyzed"] == "true"
+			c.SourceAutoAnalyzed = item.Tags["rp.auto_analyzed"] == tagValueTrue
 		}
 	}
 

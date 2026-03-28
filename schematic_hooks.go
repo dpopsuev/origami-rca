@@ -36,11 +36,11 @@ func createSession(_ context.Context, params engine.SessionParams) (*engine.Sess
 	}
 	backend, _ := params.Extra["backend"].(string)
 	if backend == "" {
-		backend = "llm"
+		backend = backendLLM
 	}
 	mode, _ := params.Extra["mode"].(string)
 	if mode == "" {
-		mode = "offline"
+		mode = string(ModeOffline)
 	}
 
 	// --- Load scenario from domain FS ---
@@ -58,7 +58,7 @@ func createSession(_ context.Context, params engine.SessionParams) (*engine.Sess
 	}
 
 	// --- Resolve RP failure data ---
-	if mode == "offline" {
+	if mode == string(ModeOffline) {
 		offlineFS, err := fs.Sub(params.DomainFS, "offline")
 		if err == nil {
 			if resolveErr := ResolveOfflineRP(offlineFS, scenario); resolveErr != nil {
@@ -94,11 +94,11 @@ func createSession(_ context.Context, params engine.SessionParams) (*engine.Sess
 	transformerName := backend
 
 	switch backend {
-	case "stub":
+	case backendStub:
 		stubT := NewStubTransformer(scenario)
 		idMapper = stubT
 		transformerComp = TransformerComponent(stubT, circuitDef)
-	case "llm":
+	case backendLLM:
 		if params.Dispatcher == nil {
 			return nil, fmt.Errorf("backend %q requires a dispatcher (framework must provide SessionParams.Dispatcher)", backend)
 		}
@@ -113,7 +113,7 @@ func createSession(_ context.Context, params engine.SessionParams) (*engine.Sess
 
 	// --- Build RunFunc that runs the full calibration pipeline ---
 	runFunc := func(ctx context.Context) (any, error) {
-		return RunCalibration(ctx, RunConfig{
+		return RunCalibration(ctx, &RunConfig{
 			Scenario:        scenario,
 			Components:      []*engine.Component{transformerComp},
 			IDMapper:        idMapper,

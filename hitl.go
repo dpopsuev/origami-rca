@@ -29,7 +29,7 @@ type HITLResult = engine.HITLResult
 // RunHITLStep runs (or resumes) the circuit until it either pauses for
 // human input (Interrupt) or completes. If a checkpoint exists, the walk
 // resumes from the last interrupted node.
-func RunHITLStep(ctx context.Context, cfg HITLConfig) (*HITLResult, error) {
+func RunHITLStep(ctx context.Context, cfg *HITLConfig) (*HITLResult, error) {
 	th := DefaultThresholds()
 	walkerID := fmt.Sprintf("case-%d", cfg.CaseData.ID)
 
@@ -61,7 +61,7 @@ func RunHITLStep(ctx context.Context, cfg HITLConfig) (*HITLResult, error) {
 
 // ResumeHITLStep reads a saved artifact and resumes the walk from the
 // last checkpointed node.
-func ResumeHITLStep(ctx context.Context, cfg HITLConfig, artifactData []byte) (*HITLResult, error) {
+func ResumeHITLStep(ctx context.Context, cfg *HITLConfig, artifactData []byte) (*HITLResult, error) {
 	th := DefaultThresholds()
 	walkerID := fmt.Sprintf("case-%d", cfg.CaseData.ID)
 
@@ -103,13 +103,13 @@ func LoadCheckpointState(caseDir string, caseID int64) (*circuit.WalkerState, er
 	return engine.LoadCheckpointState(caseDir, fmt.Sprintf("case-%d", caseID))
 }
 
-func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg HITLConfig) (circuit.Walker, string, error) {
+func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg *HITLConfig) (circuit.Walker, string, error) {
 	loaded, _ := cp.Load(walkerID)
 
 	walker := circuit.NewProcessWalker(walkerID)
 	injectHITLContext(walker.State(), cfg)
 
-	startNode := "recall"
+	startNode := nodeRecall
 	if resumed := engine.RestoreWalkerState(walker, loaded); resumed != "" {
 		startNode = resumed
 	}
@@ -117,7 +117,7 @@ func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg HITLConfig) (ci
 	return walker, startNode, nil
 }
 
-func injectHITLContext(state *circuit.WalkerState, cfg HITLConfig) {
+func injectHITLContext(state *circuit.WalkerState, cfg *HITLConfig) {
 	state.Context[KeyStore] = cfg.Store
 	state.Context[KeyCaseData] = cfg.CaseData
 	state.Context[KeyEnvelope] = cfg.Envelope

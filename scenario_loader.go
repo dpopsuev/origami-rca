@@ -75,7 +75,7 @@ func ResolveOfflineRP(offlineFS fs.FS, scenario *Scenario) error {
 			}
 			if item.Tags != nil {
 				c.SourceIssueType = item.Tags["rp.issue_type"]
-				c.SourceAutoAnalyzed = item.Tags["rp.auto_analyzed"] == "true"
+				c.SourceAutoAnalyzed = item.Tags["rp.auto_analyzed"] == tagValueTrue
 			}
 		}
 		return nil
@@ -108,7 +108,7 @@ func matchOfflineItem(env *rcatype.Envelope, c *GroundTruthCase) *rcatype.Failur
 // ListScenarios returns the names of all scenarios in the given filesystem, sorted.
 func ListScenarios(fsys fs.FS) []string {
 	entries, _ := fs.ReadDir(fsys, ".")
-	var names []string
+	names := make([]string, 0, len(entries))
 	for _, e := range entries {
 		if strings.HasSuffix(e.Name(), ".yaml") {
 			names = append(names, strings.TrimSuffix(e.Name(), ".yaml"))
@@ -128,7 +128,7 @@ func listDir(fsys fs.FS, dir string) string {
 	if len(entries) == 0 {
 		return "<empty>"
 	}
-	var names []string
+	names := make([]string, 0, len(entries))
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}

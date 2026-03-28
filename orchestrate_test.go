@@ -15,7 +15,7 @@ import (
 func TestArtifactReadWrite(t *testing.T) {
 	dir := t.TempDir()
 	caseDir := filepath.Join(dir, "1", "10")
-	if err := os.MkdirAll(caseDir, 0755); err != nil {
+	if err := os.MkdirAll(caseDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,7 +58,7 @@ func TestArtifactReadWrite(t *testing.T) {
 func TestWritePrompt(t *testing.T) {
 	dir := t.TempDir()
 	caseDir := filepath.Join(dir, "1", "10")
-	if err := os.MkdirAll(caseDir, 0755); err != nil {
+	if err := os.MkdirAll(caseDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 

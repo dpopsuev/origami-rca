@@ -9,7 +9,7 @@ import (
 // ScenarioToCatalog converts a SourcePackConfig to a toolkit.SourceCatalog
 // for inject hooks and template parameter assembly.
 func ScenarioToCatalog(wc SourcePackConfig) toolkit.SourceCatalog {
-	var sources []toolkit.Source
+	sources := make([]toolkit.Source, 0, len(wc.Repos))
 	for _, r := range wc.Repos {
 		tags := map[string]string{
 			"layer": "base",
@@ -36,7 +36,7 @@ func inferRole(purpose string) string {
 	case containsAny(purpose, "SUT", "lifecycle", "operator", "daemon"):
 		return "sut"
 	case containsAny(purpose, "test", "e2e", "framework", "gotests"):
-		return "test"
+		return categoryTest
 	case containsAny(purpose, "doc", "architecture", "reference"):
 		return "reference"
 	case containsAny(purpose, "deploy", "manifests", "CI", "config"):

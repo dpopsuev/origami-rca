@@ -99,7 +99,8 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]engine.BatchCase, err
 	a.suiteID = suiteID
 
 	versionMap := make(map[string]int64)
-	for _, c := range a.Scenario.Cases {
+	for i := range a.Scenario.Cases {
+		c := &a.Scenario.Cases[i]
 		if _, exists := versionMap[c.Version]; !exists {
 			v := &store.Version{Label: c.Version}
 			vid, err := st.CreateVersion(v)
@@ -114,7 +115,8 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]engine.BatchCase, err
 	jobMap := make(map[pipeKey]int64)
 	launchMap := make(map[pipeKey]int64)
 
-	for _, c := range a.Scenario.Cases {
+	for i := range a.Scenario.Cases {
+		c := &a.Scenario.Cases[i]
 		pk := pipeKey{c.Version, c.Job}
 		if _, exists := circuitMap[pk]; !exists {
 			pipe := &store.Circuit{
@@ -153,7 +155,8 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]engine.BatchCase, err
 	a.entries = make([]caseEntry, len(a.Scenario.Cases))
 	batchCases := make([]engine.BatchCase, len(a.Scenario.Cases))
 
-	for i, gtCase := range a.Scenario.Cases {
+	for i := range a.Scenario.Cases {
+		gtCase := &a.Scenario.Cases[i]
 		pk := pipeKey{gtCase.Version, gtCase.Job}
 		caseData := &store.Case{
 			JobID:        jobMap[pk],
@@ -193,7 +196,7 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]engine.BatchCase, err
 			}),
 		}
 
-		a.entries[i] = caseEntry{gtCase: gtCase, caseData: caseData, caseDir: caseDir}
+		a.entries[i] = caseEntry{gtCase: *gtCase, caseData: caseData, caseDir: caseDir}
 
 		adapters := make([]*engine.Component, len(a.Components), len(a.Components)+2)
 		copy(adapters, a.Components)
@@ -224,7 +227,7 @@ func (a *RCACalibrationAdapter) OnCaseComplete() func(int, engine.BatchWalkResul
 	return func(i int, _ engine.BatchWalkResult) {
 		mu.Lock()
 		defer mu.Unlock()
-		updateIDMaps(a.IDMapper, a.st, a.entries[i].caseData, a.entries[i].gtCase, a.Scenario)
+		updateIDMaps(a.IDMapper, a.st, a.entries[i].caseData, &a.entries[i].gtCase, a.Scenario)
 	}
 }
 
@@ -237,7 +240,7 @@ func (a *RCACalibrationAdapter) Collect(_ context.Context, results []engine.Batc
 	logger := slog.Default().With("component", "calibrate")
 
 	// Build a RunConfig for collectCaseResult compatibility.
-	cfg := RunConfig{
+	cfg := &RunConfig{
 		Scenario:  a.Scenario,
 		BasePath:  a.BasePath,
 		ScoreCard: a.ScoreCard,
@@ -249,7 +252,7 @@ func (a *RCACalibrationAdapter) Collect(_ context.Context, results []engine.Batc
 		logger.Info("processed case",
 			"case_id", entry.gtCase.ID, "index", i+1, "total", len(a.entries), "test", entry.gtCase.TestName)
 
-		caseResults[i] = collectCaseResult(br, entry.gtCase, entry.caseData, entry.caseDir, a.suiteID, a.st, cfg)
+		caseResults[i] = collectCaseResult(br, &entry.gtCase, entry.caseData, entry.caseDir, a.suiteID, a.st, cfg)
 
 		// Overlay contract-extracted fields when available. The contract
 		// provides a generic extraction path for standard fields; the

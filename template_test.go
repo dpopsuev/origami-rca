@@ -100,7 +100,7 @@ func TestFillTemplate_File(t *testing.T) {
 Case: #{{.CaseID}}
 Test: {{.Failure.TestName}}`
 
-	if err := os.WriteFile(tmplPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tmplPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

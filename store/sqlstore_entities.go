@@ -152,7 +152,7 @@ func (s *SqlStore) CreateSuite(suite *InvestigationSuite) (int64, error) {
 		return 0, fmt.Errorf("suite is nil")
 	}
 	if suite.Status == "" {
-		suite.Status = "open"
+		suite.Status = StatusOpen
 	}
 	if suite.CreatedAt == "" {
 		suite.CreatedAt = nowUTC()
@@ -330,7 +330,7 @@ func (s *SqlStore) CreateCase(c *Case) (int64, error) {
 	}
 	now := nowUTC()
 	if c.Status == "" {
-		c.Status = "open"
+		c.Status = StatusOpen
 	}
 	if c.CreatedAt == "" {
 		c.CreatedAt = now
@@ -425,7 +425,7 @@ func (s *SqlStore) CreateSymptom(sym *Symptom) (int64, error) {
 	}
 	now := nowUTC()
 	if sym.Status == "" {
-		sym.Status = "active"
+		sym.Status = StatusActive
 	}
 	if sym.OccurrenceCount == 0 {
 		sym.OccurrenceCount = 1
@@ -519,7 +519,7 @@ func (s *SqlStore) SaveRCA(rca *RCA) (int64, error) {
 		return 0, fmt.Errorf("rca is nil")
 	}
 	if rca.Status == "" {
-		rca.Status = "open"
+		rca.Status = StatusOpen
 	}
 	if rca.CreatedAt == "" {
 		rca.CreatedAt = nowUTC()
@@ -568,13 +568,13 @@ func (s *SqlStore) UpdateRCAStatus(id int64, status string) error {
 	now := nowUTC()
 	set := sqlite.Row{"status": status}
 	switch status {
-	case "resolved":
+	case StatusResolved:
 		set["resolved_at"] = now
-	case "verified":
+	case StatusVerified:
 		set["verified_at"] = now
-	case "archived":
+	case StatusArchived:
 		set["archived_at"] = now
-	case "open":
+	case StatusOpen:
 		set["resolved_at"] = nil
 		set["verified_at"] = nil
 	}

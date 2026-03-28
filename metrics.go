@@ -28,7 +28,7 @@ func computeMetrics(scenario *Scenario, results []CaseResult, sc *cal.ScoreCard)
 		}
 	}
 
-	m20def := sc.FindDef("M20")
+	m20def := sc.FindDef(metricM20)
 	if m20def != nil {
 		ms.Metrics = append(ms.Metrics, m20def.ToMetric(0, "single run"))
 	}
@@ -69,7 +69,8 @@ func PrepareBatchInput(results []CaseResult, scenario *Scenario) ([]map[string]a
 	repoRelevance := buildRepoRelevanceMap(scenario)
 
 	batch := make([]map[string]any, 0, len(results))
-	for _, r := range results {
+	for idx := range results {
+		r := &results[idx]
 		item := map[string]any{
 			"case_id":              r.CaseID,
 			"actual_defect_type":   r.ActualDefectType,
@@ -100,45 +101,7 @@ func PrepareBatchInput(results []CaseResult, scenario *Scenario) ([]map[string]a
 
 		gt := caseMap[r.CaseID]
 		if gt != nil {
-			item["rca_id"] = gt.RCAID
-			item["expect_recall_hit"] = gt.ExpectRecallHit
-			item["expect_skip"] = gt.ExpectSkip
-			item["expect_cascade"] = gt.ExpectCascade
-			item["expected_path"] = gt.ExpectedPath
-			item["expected_loops"] = gt.ExpectedLoops
-			item["has_expected_resolve"] = gt.ExpectedResolve != nil
-
-			if gt.ExpectedTriage != nil {
-				item["expected_symptom_category"] = gt.ExpectedTriage.SymptomCategory
-			}
-			if gt.ExpectedInvest != nil {
-				item["expected_evidence_refs"] = gt.ExpectedInvest.EvidenceRefs
-			}
-
-			if rca := rcaMap[gt.RCAID]; rca != nil {
-				item["rca_defect_type"] = rca.DefectType
-				item["rca_component"] = rca.Component
-				item["rca_relevant_repos"] = rca.RelevantRepos
-				item["rca_required_keywords"] = rca.RequiredKeywords
-				item["rca_keyword_threshold"] = rca.KeywordThreshold
-				item["rca_smoking_gun"] = rca.SmokingGun
-				item["rca_smoking_gun_words"] = cal.SmokingGunWords(rca.SmokingGun)
-
-				correct := 0.0
-				if r.ActualDefectType == rca.DefectType {
-					correct = 1.0
-				}
-				item["defect_type_correct_float"] = correct
-			}
-
-			// Repo relevance for M9/M10
-			if rel, ok := repoRelevance[gt.RCAID]; ok {
-				repos := make([]string, 0, len(rel))
-				for repo := range rel {
-					repos = append(repos, repo)
-				}
-				item["rca_relevant_repos"] = repos
-			}
+			populateGroundTruthFields(item, gt, rcaMap, repoRelevance, r.ActualDefectType)
 		}
 
 		// has_convergence filter for M8
@@ -180,7 +143,7 @@ func AggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 	var m19vals []float64
 	for _, run := range runs {
 		for _, m := range run.AllMetrics() {
-			if m.ID == "M19" {
+			if m.ID == metricM19 {
 				m19vals = append(m19vals, m.Value)
 			}
 		}
@@ -193,7 +156,7 @@ func AggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 		m19threshold = sc.Aggregate.Threshold
 	}
 
-	m20def := sc.FindDef("M20")
+	m20def := sc.FindDef(metricM20)
 	m20threshold := 0.15
 	if m20def != nil {
 		m20threshold = m20def.Threshold
@@ -201,15 +164,15 @@ func AggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 
 	for i := range agg.Metrics {
 		switch agg.Metrics[i].ID {
-		case "M19":
+		case metricM19:
 			agg.Metrics[i] = Metric{
-				ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: m19threshold,
+				ID: metricM19, Name: "overall_accuracy", Value: m19mean, Threshold: m19threshold,
 				Pass: m19mean >= m19threshold, Detail: fmt.Sprintf("mean of %d runs", len(runs)),
 				Tier: cal.TierMeta,
 			}
-		case "M20":
+		case metricM20:
 			agg.Metrics[i] = Metric{
-				ID: "M20", Name: "run_variance", Value: variance, Threshold: m20threshold,
+				ID: metricM20, Name: "run_variance", Value: variance, Threshold: m20threshold,
 				Pass: variance <= m20threshold, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs)),
 				Tier: cal.TierMeta,
 			}
@@ -220,12 +183,53 @@ func AggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 }
 
 // buildRepoRelevanceMap creates a map from RCA ID → set of relevant repo names.
+func populateGroundTruthFields(item map[string]any, gt *GroundTruthCase, rcaMap map[string]*GroundTruthRCA, repoRelevance map[string]map[string]bool, actualDefectType string) {
+	item["rca_id"] = gt.RCAID
+	item["expect_recall_hit"] = gt.ExpectRecallHit
+	item["expect_skip"] = gt.ExpectSkip
+	item["expect_cascade"] = gt.ExpectCascade
+	item["expected_path"] = gt.ExpectedPath
+	item["expected_loops"] = gt.ExpectedLoops
+	item["has_expected_resolve"] = gt.ExpectedResolve != nil
+
+	if gt.ExpectedTriage != nil {
+		item["expected_symptom_category"] = gt.ExpectedTriage.SymptomCategory
+	}
+	if gt.ExpectedInvest != nil {
+		item["expected_evidence_refs"] = gt.ExpectedInvest.EvidenceRefs
+	}
+
+	if rca := rcaMap[gt.RCAID]; rca != nil {
+		item["rca_defect_type"] = rca.DefectType
+		item["rca_component"] = rca.Component
+		item["rca_relevant_repos"] = rca.RelevantRepos
+		item["rca_required_keywords"] = rca.RequiredKeywords
+		item["rca_keyword_threshold"] = rca.KeywordThreshold
+		item["rca_smoking_gun"] = rca.SmokingGun
+		item["rca_smoking_gun_words"] = cal.SmokingGunWords(rca.SmokingGun)
+
+		correct := 0.0
+		if actualDefectType == rca.DefectType {
+			correct = 1.0
+		}
+		item["defect_type_correct_float"] = correct
+	}
+
+	if rel, ok := repoRelevance[gt.RCAID]; ok {
+		repos := make([]string, 0, len(rel))
+		for repo := range rel {
+			repos = append(repos, repo)
+		}
+		item["rca_relevant_repos"] = repos
+	}
+}
+
 func buildRepoRelevanceMap(scenario *Scenario) map[string]map[string]bool {
 	m := make(map[string]map[string]bool)
-	for _, rca := range scenario.RCAs {
-		m[rca.ID] = make(map[string]bool)
-		for _, repo := range rca.RelevantRepos {
-			m[rca.ID][repo] = true
+	for i := range scenario.RCAs {
+		m[scenario.RCAs[i].ID] = make(map[string]bool)
+		for _, repo := range scenario.RCAs[i].RelevantRepos {
+			m[scenario.RCAs[i].ID][repo] = true
 		}
 	}
 	return m

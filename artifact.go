@@ -49,6 +49,6 @@ func WriteArtifact(caseDir, filename string, data any) error {
 	return toolkit.WriteArtifact(caseDir, filename, data)
 }
 
-func WriteNodePrompt(caseDir string, nodeName string, loopIter int, content string) (string, error) {
+func WriteNodePrompt(caseDir, nodeName string, loopIter int, content string) (string, error) {
 	return toolkit.WriteNodePrompt(caseDir, nodeName, loopIter, content)
 }

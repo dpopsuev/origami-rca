@@ -19,7 +19,7 @@ func DefaultCircuitYAML() []byte { return defaultCircuitYAML }
 // with this base.
 func SchematicResolver() circuit.AssetResolver {
 	return func(name string) ([]byte, error) {
-		if name == "rca" {
+		if name == valueRCA {
 			return defaultCircuitYAML, nil
 		}
 		return nil, fmt.Errorf("unknown schematic %q", name)

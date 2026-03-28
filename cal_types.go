@@ -26,7 +26,7 @@ const (
 
 // ParseCalibrationMode converts a string to CalibrationMode, defaulting to online.
 func ParseCalibrationMode(s string) CalibrationMode {
-	if s == "offline" {
+	if s == string(ModeOffline) {
 		return ModeOffline
 	}
 	return ModeOnline

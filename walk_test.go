@@ -39,7 +39,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 	transComp := TransformerComponent(&fullCircuitTransformer{})
 	circuitData := readInternalTestdata(t, "circuit_rca.yaml")
 
-	result, err := WalkCase(context.Background(), WalkConfig{
+	result, err := WalkCase(context.Background(), &WalkConfig{
 		Store:       ms,
 		CaseData:    c,
 		CaseLabel:   "T1",
@@ -107,7 +107,7 @@ func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 	transComp := TransformerComponent(&triageInvestigateTransformer{})
 	circuitData := readInternalTestdata(t, "circuit_rca.yaml")
 
-	result, err := WalkCase(context.Background(), WalkConfig{
+	result, err := WalkCase(context.Background(), &WalkConfig{
 		Store:       ms,
 		CaseData:    c,
 		CaseLabel:   "T2",

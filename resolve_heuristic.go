@@ -19,7 +19,7 @@ func (t *resolveHeuristic) Transform(_ context.Context, tc *engine.TransformerCo
 	text := t.ht.textFromFailure(fp)
 	component := t.ht.identifyComponent(text)
 	var repos []any
-	if component != "unknown" {
+	if component != valueUnknown {
 		repos = append(repos, map[string]any{"name": component, "reason": fmt.Sprintf("keyword-identified component: %s", component)})
 	} else {
 		for _, name := range t.ht.repos {

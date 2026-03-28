@@ -62,7 +62,7 @@ func DefaultRunConfig(scenario *Scenario, comps []*engine.Component, transformer
 
 // ResolvedGapConfidentThreshold returns the gap confident threshold,
 // falling back to the default if zero.
-func (c RunConfig) ResolvedGapConfidentThreshold() float64 {
+func (c *RunConfig) ResolvedGapConfidentThreshold() float64 {
 	if c.GapConfidentThreshold > 0 {
 		return c.GapConfidentThreshold
 	}
@@ -71,7 +71,7 @@ func (c RunConfig) ResolvedGapConfidentThreshold() float64 {
 
 // ResolvedGapInconclusiveThreshold returns the gap inconclusive threshold,
 // falling back to the default if zero.
-func (c RunConfig) ResolvedGapInconclusiveThreshold() float64 {
+func (c *RunConfig) ResolvedGapInconclusiveThreshold() float64 {
 	if c.GapInconclusiveThreshold > 0 {
 		return c.GapInconclusiveThreshold
 	}
@@ -82,7 +82,7 @@ func (c RunConfig) ResolvedGapInconclusiveThreshold() float64 {
 // calibrate.Run() harness with RCA adapters. This is a compatibility
 // wrapper — new code should use calibrate.Run() with RCACalibrationAdapter
 // directly.
-func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, error) {
+func RunCalibration(ctx context.Context, cfg *RunConfig) (*CalibrationReport, error) {
 	if cfg.BasePath == "" {
 		cfg.BasePath = DefaultBasePath
 	}
@@ -126,7 +126,7 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 	// Apply domain-specific metric post-processing.
 	ApplyDryCaps(&report.Metrics, cfg.Scenario.DryCappedMetrics)
 
-	m20def := cfg.ScoreCard.FindDef("M20")
+	m20def := cfg.ScoreCard.FindDef(metricM20)
 	if m20def != nil {
 		if cfg.Runs == 1 {
 			report.Metrics.Metrics = append(report.Metrics.Metrics,
@@ -204,13 +204,13 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 
 	// Defect type and component — look up ground truth RCA
 	if gt.RCAID != "" {
-		for _, gtRCA := range scenario.RCAs {
-			if gtRCA.ID == gt.RCAID {
-				r.DefectTypeCorrect = (r.ActualDefectType == gtRCA.DefectType)
-				r.ComponentCorrect = (r.ActualComponent == gtRCA.Component) ||
+		for j := range scenario.RCAs {
+			if scenario.RCAs[j].ID == gt.RCAID {
+				r.DefectTypeCorrect = (r.ActualDefectType == scenario.RCAs[j].DefectType)
+				r.ComponentCorrect = (r.ActualComponent == scenario.RCAs[j].Component) ||
 					(r.ActualRCAMessage != "" && strings.Contains(
 						strings.ToLower(r.ActualRCAMessage),
-						strings.ToLower(gtRCA.Component)))
+						strings.ToLower(scenario.RCAs[j].Component)))
 				break
 			}
 		}
@@ -221,12 +221,12 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 // step metrics, writing artifacts, and reading final store state.
 func collectCaseResult(
 	br engine.BatchWalkResult,
-	gtCase GroundTruthCase,
+	gtCase *GroundTruthCase,
 	caseData *store.Case,
 	caseDir string,
 	suiteID int64,
 	st store.Store,
-	cfg RunConfig,
+	cfg *RunConfig,
 ) CaseResult {
 	result := CaseResult{
 		CaseID:         gtCase.ID,
@@ -243,9 +243,7 @@ func collectCaseResult(
 		return result
 	}
 
-	for _, nodeName := range br.Path {
-		result.ActualPath = append(result.ActualPath, nodeName)
-	}
+	result.ActualPath = append(result.ActualPath, br.Path...)
 
 	for nodeName, art := range br.StepArtifacts {
 		extractStepMetrics(&result, nodeName, art.Raw(), gtCase)
@@ -298,19 +296,19 @@ func collectCaseResult(
 
 
 // extractStepMetrics populates CaseResult fields from per-step artifacts.
-func extractStepMetrics(result *CaseResult, nodeName string, artifact any, gt GroundTruthCase) {
+func extractStepMetrics(result *CaseResult, nodeName string, artifact any, gt *GroundTruthCase) {
 	m := asMap(artifact)
 	if m == nil {
 		return
 	}
 	switch nodeName {
-	case "recall":
+	case nodeRecall:
 		result.ActualRecallHit = mapBool(m, "match") && mapFloat(m, "confidence") >= 0.80
-	case "triage":
+	case nodeTriage:
 		result.ActualCategory = mapStr(m, "symptom_category")
 		cat := mapStr(m, "symptom_category")
 		result.ActualSkip = mapBool(m, "skip_investigation") ||
-			cat == "infra" || cat == "flake"
+			cat == categoryInfra || cat == "flake"
 		result.ActualCascade = mapBool(m, "cascade_suspected")
 		if hyp := mapStr(m, "defect_type_hypothesis"); hyp != "" && result.ActualDefectType == "" {
 			result.ActualDefectType = hyp
@@ -319,7 +317,7 @@ func extractStepMetrics(result *CaseResult, nodeName string, artifact any, gt Gr
 		if len(candidates) == 1 && !mapBool(m, "skip_investigation") {
 			result.ActualSelectedRepos = append(result.ActualSelectedRepos, candidates[0])
 		}
-	case "resolve":
+	case nodeResolve:
 		result.ActualSelectedRepos = result.ActualSelectedRepos[:0]
 		for _, r := range mapSlice(m, "selected_repos") {
 			if rm, ok := r.(map[string]any); ok {
@@ -328,7 +326,7 @@ func extractStepMetrics(result *CaseResult, nodeName string, artifact any, gt Gr
 				}
 			}
 		}
-	case "investigate":
+	case nodeInvestigate:
 		result.ActualDefectType = mapStr(m, "defect_type")
 		result.ActualRCAMessage = mapStr(m, "rca_message")
 		result.ActualEvidenceRefs = mapStrSlice(m, "evidence_refs")
@@ -421,7 +419,7 @@ func selectRepoByHypothesis(hypothesis string, repos []RepoConfig) []string {
 
 // updateIDMaps updates the transformer's RCA/symptom ID maps after a case
 // completes, so subsequent cases can reference prior RCAs/symptoms by store ID.
-func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCase GroundTruthCase, scenario *Scenario) {
+func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCase *GroundTruthCase, scenario *Scenario) {
 	updated, err := st.GetCase(caseData.ID)
 	if err != nil || updated == nil {
 		return
@@ -503,7 +501,8 @@ func buildDatasetHealth(s *Scenario) *DatasetHealth {
 		VerifiedCount:  len(s.Cases),
 		CandidateCount: len(s.Candidates),
 	}
-	for _, c := range s.Candidates {
+	for i := range s.Candidates {
+		c := &s.Candidates[i]
 		ci := CandidateInfo{
 			CaseID: c.ID,
 			RCAID:  c.RCAID,

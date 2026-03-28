@@ -18,11 +18,11 @@ import (
 
 func formatThreshold(m Metric) string {
 	switch m.ID {
-	case "M4", "M20":
+	case "M4", metricM20:
 		return fmt.Sprintf("≤%.2f", m.Threshold)
-	case "M17":
+	case metricM17:
 		return "0.5–2.0"
-	case "M18":
+	case metricM18:
 		return fmt.Sprintf("≤%.0f", m.Threshold)
 	default:
 		return fmt.Sprintf("≥%.2f", m.Threshold)
@@ -45,7 +45,7 @@ func metricGroup(id string) string {
 }
 
 func metricRows(ms cal.MetricSet, group string) []map[string]any {
-	var rows []map[string]any
+	rows := make([]map[string]any, 0, len(ms.Metrics))
 	for _, m := range ms.Metrics {
 		if metricGroup(m.ID) != group {
 			continue
@@ -123,7 +123,7 @@ func CalibrationReportData(r *CalibrationReport) map[string]any {
 	for _, cr := range r.CaseResults {
 		path := vocabStagePath(cr.ActualPath)
 		if path == "" {
-			path = "(no steps)"
+			path = valueNoSteps
 		}
 		srcTag := vocabSourceIssueTag(cr.SourceIssueType, cr.SourceAutoAnalyzed)
 		if srcTag == "" {
@@ -143,7 +143,7 @@ func CalibrationReportData(r *CalibrationReport) map[string]any {
 	}
 	data["case_results"] = caseRows
 
-	var gapRows []map[string]any
+	gapRows := make([]map[string]any, 0, len(r.CaseResults))
 	for _, cr := range r.CaseResults {
 		if len(cr.EvidenceGaps) == 0 {
 			continue
@@ -215,7 +215,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 		}
 		comp := cr.Component
 		if comp == "" {
-			comp = "unknown"
+			comp = valueUnknown
 		}
 		compCounts[comp]++
 		defectCounts[cr.DefectType]++
@@ -239,7 +239,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 
 	groups := groupAnalysisByComponent(r.CaseResults)
 	sortedComps := toolkit.SortedKeys(groups)
-	var components []map[string]any
+	components := make([]map[string]any, 0, len(sortedComps))
 	for _, comp := range sortedComps {
 		cases := groups[comp]
 		var caseRows []map[string]any
@@ -269,7 +269,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 	}
 	data["components"] = components
 
-	var caseDetails []map[string]any
+	caseDetails := make([]map[string]any, 0, len(r.CaseResults))
 	for _, cr := range r.CaseResults {
 		fields := []map[string]any{
 			{"Field": "Verdict", "Value": vocabNameWithCode(cr.DefectType)},
@@ -277,7 +277,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 		}
 		comp := cr.Component
 		if comp == "" {
-			comp = "unknown"
+			comp = valueUnknown
 		}
 		fields = append(fields,
 			map[string]any{"Field": "Component", "Value": comp},
@@ -414,7 +414,7 @@ func WeaveTranscripts(calReport *CalibrationReport) ([]RCATranscript, error) {
 	}
 
 	groups := groupByRCA(calReport.CaseResults)
-	var transcripts []RCATranscript
+	transcripts := make([]RCATranscript, 0, len(groups))
 
 	for rcaID, cases := range groups {
 		t := RCATranscript{RCAID: rcaID}
@@ -452,10 +452,10 @@ func TranscriptSlug(t *RCATranscript) string {
 	comp := strings.ToLower(strings.ReplaceAll(t.Component, " ", "-"))
 	dt := strings.ToLower(t.DefectType)
 	if comp == "" {
-		comp = "unknown"
+		comp = valueUnknown
 	}
 	if dt == "" {
-		dt = "unknown"
+		dt = valueUnknown
 	}
 	return fmt.Sprintf("rca-transcript-%s-%s", comp, dt)
 }
@@ -484,7 +484,7 @@ func TranscriptData(t *RCATranscript) map[string]any {
 		t.Primary.TestName, vocabStagePath(t.Primary.Path))
 	data["primary_entries"] = transcriptEntryData(t.Primary.Entries)
 
-	var correlated []map[string]any
+	correlated := make([]map[string]any, 0, len(t.Correlated))
 	for _, c := range t.Correlated {
 		correlated = append(correlated, map[string]any{
 			"case_title": fmt.Sprintf("Correlated Case: %s", c.CaseID),
@@ -584,7 +584,7 @@ func buildCaseTranscript(calReport *CalibrationReport, cr *CaseResult) (*CaseTra
 
 	for _, record := range state.History {
 		step := record.Step
-		if step == "INIT" || step == "DONE" {
+		if step == "INIT" || step == DoneNodeName {
 			continue
 		}
 
@@ -605,18 +605,7 @@ func buildCaseTranscript(calReport *CalibrationReport, cr *CaseResult) (*CaseTra
 
 		artifactFile := NodeArtifactFilename(step)
 		if artifactFile != "" {
-			if data, err := os.ReadFile(filepath.Join(caseDir, artifactFile)); err == nil {
-				var buf json.RawMessage
-				if json.Unmarshal(data, &buf) == nil {
-					if pretty, err := json.MarshalIndent(buf, "", "  "); err == nil {
-						entry.Response = string(pretty)
-					} else {
-						entry.Response = string(data)
-					}
-				} else {
-					entry.Response = string(data)
-				}
-			}
+			entry.Response = readArtifactResponse(filepath.Join(caseDir, artifactFile))
 		}
 
 		ct.Entries = append(ct.Entries, entry)
@@ -630,7 +619,7 @@ func groupAnalysisByComponent(cases []AnalysisCaseResult) map[string][]AnalysisC
 	for _, cr := range cases {
 		comp := cr.Component
 		if comp == "" {
-			comp = "unknown"
+			comp = valueUnknown
 		}
 		groups[comp] = append(groups[comp], cr)
 	}
@@ -649,4 +638,20 @@ func collectAnalysisEvidence(cases []AnalysisCaseResult) []string {
 		}
 	}
 	return result
+}
+
+func readArtifactResponse(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	var buf json.RawMessage
+	if json.Unmarshal(data, &buf) != nil {
+		return string(data)
+	}
+	pretty, err := json.MarshalIndent(buf, "", "  ")
+	if err != nil {
+		return string(data)
+	}
+	return string(pretty)
 }

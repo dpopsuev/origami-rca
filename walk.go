@@ -33,7 +33,7 @@ type WalkResult struct {
 }
 
 // WalkCase runs a single case through the RCA circuit using BatchWalk.
-func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
+func WalkCase(ctx context.Context, cfg *WalkConfig) (*WalkResult, error) {
 	th := cfg.Thresholds
 	if th == (Thresholds{}) {
 		th = DefaultThresholds()

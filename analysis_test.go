@@ -53,7 +53,7 @@ func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
 		{"Automation Test", "automation: test setup failed", "ginkgo internal error"},
 	}
 
-	var storeCases []*store.Case
+	storeCases := make([]*store.Case, 0, len(caseInfos))
 
 	for i, ci := range caseInfos {
 		c := &store.Case{
@@ -79,7 +79,7 @@ func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
 		CircuitData: readTestdata(t, "circuit_rca.yaml"),
 	}
 
-	report, err := rca.RunAnalysis(st, storeCases, suiteID, cfg)
+	report, err := rca.RunAnalysis(st, storeCases, suiteID, &cfg)
 	if err != nil {
 		t.Fatalf("RunAnalysis: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestRunAnalysis_EmptyCases(t *testing.T) {
 		CircuitData: readTestdata(t, "circuit_rca.yaml"),
 	}
 
-	report, err := rca.RunAnalysis(st, nil, 1, cfg)
+	report, err := rca.RunAnalysis(st, nil, 1, &cfg)
 	if err != nil {
 		t.Fatalf("RunAnalysis with empty cases: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestFormatAnalysisReport_Structure(t *testing.T) {
 	}
 
 	output := rca.FormatAnalysisReport(report)
-	if len(output) == 0 {
+	if output == "" {
 		t.Fatal("FormatAnalysisReport returned empty string")
 	}
 

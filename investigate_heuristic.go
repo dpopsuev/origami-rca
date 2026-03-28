@@ -29,12 +29,12 @@ func (t *investigateHeuristic) Transform(_ context.Context, tc *engine.Transform
 	if fp.name != "" {
 		rcaParts = append(rcaParts, fmt.Sprintf("Test: %s", fp.name))
 	}
-	if component != "unknown" {
+	if component != valueUnknown {
 		rcaParts = append(rcaParts, fmt.Sprintf("Suspected component: %s", component))
 	}
 	rcaMessage := strings.Join(rcaParts, " | ")
 	if rcaMessage == "" {
-		rcaMessage = "investigation pending (no error message available)"
+		rcaMessage = valueInvestigationPending
 	}
 
 	convergence := t.ht.computeConvergence(text, component)

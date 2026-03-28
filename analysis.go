@@ -56,8 +56,8 @@ type AnalysisCaseResult struct {
 // RunAnalysis drives the F0–F6 circuit for a set of cases using the provided transformer.
 // Unlike RunCalibration, there is no ground truth scoring — just investigation results.
 // Each case is walked through the circuit graph using WalkCase with store-effect hooks.
-func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg AnalysisConfig) (*AnalysisReport, error) {
-	transformerName := "unknown"
+func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg *AnalysisConfig) (*AnalysisReport, error) {
+	transformerName := valueUnknown
 	if len(cfg.Components) > 0 {
 		transformerName = cfg.Components[0].Name
 	}
@@ -94,7 +94,7 @@ func walkAnalysisCase(
 	st store.Store,
 	caseData *store.Case,
 	caseLabel string,
-	cfg AnalysisConfig,
+	cfg *AnalysisConfig,
 ) (*AnalysisCaseResult, error) {
 	result := &AnalysisCaseResult{
 		CaseLabel:   caseLabel,
@@ -124,7 +124,9 @@ func walkAnalysisCase(
 			CaseDir:  caseDir,
 		}),
 	}
-	comps := append(cfg.Components, hooksComp, injectComp)
+	comps := make([]*engine.Component, 0, len(cfg.Components)+2)
+	comps = append(comps, cfg.Components...)
+	comps = append(comps, hooksComp, injectComp)
 
 	walkCfg := WalkConfig{
 		Store:       st,
@@ -138,7 +140,7 @@ func walkAnalysisCase(
 		Components:  comps,
 	}
 
-	walkResult, err := WalkCase(context.Background(), walkCfg)
+	walkResult, err := WalkCase(context.Background(), &walkCfg)
 	if err != nil {
 		return result, fmt.Errorf("walk: %w", err)
 	}
@@ -173,9 +175,9 @@ func extractAnalysisStepData(result *AnalysisCaseResult, nodeName string, artifa
 		return
 	}
 	switch nodeName {
-	case "recall":
+	case nodeRecall:
 		result.RecallHit = mapBool(m, "match") && mapFloat(m, "confidence") >= 0.80
-	case "triage":
+	case nodeTriage:
 		result.Category = mapStr(m, "symptom_category")
 		result.Skip = mapBool(m, "skip_investigation")
 		result.Cascade = mapBool(m, "cascade_suspected")
@@ -183,7 +185,7 @@ func extractAnalysisStepData(result *AnalysisCaseResult, nodeName string, artifa
 		if len(candidates) == 1 && !mapBool(m, "skip_investigation") {
 			result.SelectedRepos = append(result.SelectedRepos, candidates[0])
 		}
-	case "resolve":
+	case nodeResolve:
 		for _, r := range mapSlice(m, "selected_repos") {
 			if rm, ok := r.(map[string]any); ok {
 				if name := mapStr(rm, "name"); name != "" {
@@ -191,7 +193,7 @@ func extractAnalysisStepData(result *AnalysisCaseResult, nodeName string, artifa
 				}
 			}
 		}
-	case "investigate":
+	case nodeInvestigate:
 		result.DefectType = mapStr(m, "defect_type")
 		result.RCAMessage = mapStr(m, "rca_message")
 		result.EvidenceRefs = mapStrSlice(m, "evidence_refs")
@@ -214,17 +216,17 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	skipped := 0
 	cascades := 0
 	investigated := 0
-	for _, cr := range report.CaseResults {
-		if cr.RecallHit {
+	for i := range report.CaseResults {
+		if report.CaseResults[i].RecallHit {
 			recallHits++
 		}
-		if cr.Skip {
+		if report.CaseResults[i].Skip {
 			skipped++
 		}
-		if cr.Cascade {
+		if report.CaseResults[i].Cascade {
 			cascades++
 		}
-		if cr.RCAID != 0 {
+		if report.CaseResults[i].RCAID != 0 {
 			investigated++
 		}
 	}
@@ -240,10 +242,11 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 		toolkit.ColumnConfig{Number: 2, MaxWidth: 50},
 		toolkit.ColumnConfig{Number: 6, Align: toolkit.AlignRight},
 	)
-	for _, cr := range report.CaseResults {
+	for i := range report.CaseResults {
+		cr := &report.CaseResults[i]
 		path := vocabStagePath(cr.Path)
 		if path == "" {
-			path = "(no steps)"
+			path = valueNoSteps
 		}
 		flags := ""
 		if cr.RecallHit {
@@ -280,7 +283,8 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	b.WriteString("\n")
 
 	// RCA messages below the table
-	for _, cr := range report.CaseResults {
+	for i := range report.CaseResults {
+		cr := &report.CaseResults[i]
 		if cr.RCAMessage != "" {
 			b.WriteString(fmt.Sprintf("  %s RCA: %s\n", cr.CaseLabel, toolkit.Truncate(cr.RCAMessage, 80)))
 		}

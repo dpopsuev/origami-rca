@@ -1,7 +1,6 @@
 package rca_test
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,7 +30,3 @@ func readTestdata(t *testing.T, rel string) []byte {
 	return data
 }
 
-func testdataPromptFSExternal() fs.FS {
-	sub, _ := fs.Sub(os.DirFS(testdataDir()), "prompts")
-	return sub
-}

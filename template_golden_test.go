@@ -190,10 +190,10 @@ func TestPromptGolden(t *testing.T) {
 			goldenFile := filepath.Join("testdata", "golden", "prompt-"+tt.family+".md")
 
 			if *updateGolden {
-				if err := os.MkdirAll(filepath.Dir(goldenFile), 0755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(goldenFile), 0o755); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(goldenFile, []byte(got), 0644); err != nil {
+				if err := os.WriteFile(goldenFile, []byte(got), 0o644); err != nil {
 					t.Fatal(err)
 				}
 				t.Logf("updated %s", goldenFile)

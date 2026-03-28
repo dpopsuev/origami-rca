@@ -33,7 +33,7 @@ type RCAVerdict struct {
 
 // DefectWriter writes RCA results back to an external system.
 type DefectWriter interface {
-	Push(verdict RCAVerdict) (*PushedRecord, error)
+	Push(verdict *RCAVerdict) (*PushedRecord, error)
 }
 
 // PushedRecord captures the result of a defect write operation.
@@ -45,7 +45,7 @@ type PushedRecord struct {
 // DefaultDefectWriter extracts defect type locally without remote API.
 type DefaultDefectWriter struct{}
 
-func (DefaultDefectWriter) Push(verdict RCAVerdict) (*PushedRecord, error) {
+func (DefaultDefectWriter) Push(verdict *RCAVerdict) (*PushedRecord, error) {
 	return &PushedRecord{RunID: verdict.RunID, DefectType: verdict.DefectType}, nil
 }
 

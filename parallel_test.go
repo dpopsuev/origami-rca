@@ -27,7 +27,7 @@ func TestParallel_ResultsMatch(t *testing.T) {
 		ScoreCard:   loadTestScoreCard(t),
 		CircuitData: testCircuitData(t),
 	}
-	serialReport, err := rca.RunCalibration(context.Background(), serialCfg)
+	serialReport, err := rca.RunCalibration(context.Background(), &serialCfg)
 	if err != nil {
 		t.Fatalf("serial run failed: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestParallel_ResultsMatch(t *testing.T) {
 		ScoreCard:   loadTestScoreCard(t),
 		CircuitData: testCircuitData(t),
 	}
-	parallelReport, err := rca.RunCalibration(context.Background(), parallelCfg)
+	parallelReport, err := rca.RunCalibration(context.Background(), &parallelCfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestParallel_NoRace(t *testing.T) {
 		CircuitData: testCircuitData(t),
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	report, err := rca.RunCalibration(context.Background(), &cfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestParallel_AllCasesComplete(t *testing.T) {
 		CircuitData: testCircuitData(t),
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	report, err := rca.RunCalibration(context.Background(), &cfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}

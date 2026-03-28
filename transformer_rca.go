@@ -62,7 +62,7 @@ func NewRCATransformer(d agentport.Dispatcher, promptFS fs.FS, opts ...RCATransf
 	return t
 }
 
-func (t *rcaTransformer) Name() string        { return "rca" }
+func (t *rcaTransformer) Name() string        { return valueRCA }
 func (t *rcaTransformer) Deterministic() bool { return false }
 
 func (t *rcaTransformer) Transform(ctx context.Context, tc *engine.TransformerContext) (any, error) {
@@ -91,7 +91,7 @@ func (t *rcaTransformer) Transform(ctx context.Context, tc *engine.TransformerCo
 	}
 
 	promptFile := filepath.Join(caseDir, NodePromptFilename(nodeName, 0))
-	if err := os.WriteFile(promptFile, []byte(prompt), 0644); err != nil {
+	if err := os.WriteFile(promptFile, []byte(prompt), 0o644); err != nil {
 		return nil, fmt.Errorf("rca transformer: write prompt: %w", err)
 	}
 

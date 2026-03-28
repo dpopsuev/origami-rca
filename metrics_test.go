@@ -653,7 +653,7 @@ func TestPrepareBatchInput(t *testing.T) {
 	}
 
 	repos, _ := batchCtx["red_herring_repos"].([]string)
-	if repos != nil && len(repos) > 0 {
+	if len(repos) > 0 {
 		t.Errorf("expected no red herring repos, got %v", repos)
 	}
 }

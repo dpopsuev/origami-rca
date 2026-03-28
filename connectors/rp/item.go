@@ -42,7 +42,9 @@ func (s *ItemScope) ListAll(ctx context.Context, opts ...ListItemsOption) ([]Tes
 	pageSize := 200
 
 	for {
-		pageOpts := append(opts,
+		pageOpts := make([]ListItemsOption, 0, len(opts)+2)
+		pageOpts = append(pageOpts, opts...)
+		pageOpts = append(pageOpts,
 			WithItemPageSize(pageSize),
 			WithItemPageNumber(page),
 		)

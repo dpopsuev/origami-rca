@@ -26,7 +26,7 @@ func TestDefaultQuickWins(t *testing.T) {
 
 func TestTuningRunner_SkeletonAllSkipped(t *testing.T) {
 	qws := LoadQuickWins(readInternalTestdata(t, "tuning-quickwins.yaml"))
-	runner := NewTuningRunner(RunConfig{}, qws)
+	runner := NewTuningRunner(&RunConfig{}, qws)
 	report := runner.Run(0.83)
 
 	if report.BaselineVal != 0.83 {
