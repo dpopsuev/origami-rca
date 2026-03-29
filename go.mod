@@ -3,7 +3,7 @@ module github.com/dpopsuev/origami-rca
 go 1.25.7
 
 require (
-	github.com/dpopsuev/origami v0.2.0
+	github.com/dpopsuev/origami v0.7.1-0.20260329144149-4045d5cb4625
 	github.com/google/go-cmp v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )

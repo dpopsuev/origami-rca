@@ -122,7 +122,7 @@ func TestCalibrate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	harnessConfig := cal.HarnessConfig{
+	harnessConfig := &cal.HarnessConfig{
 		Loader:         adapter,
 		Collector:      adapter,
 		Renderer:       adapter,
@@ -150,7 +150,7 @@ func TestCalibrate(t *testing.T) {
 	}
 
 	if res := calibrateResolution(); res != "" {
-		applyResolution(t, &harnessConfig, domainFS, res)
+		applyResolution(t, harnessConfig, domainFS, res)
 	}
 
 	genReport, err := cal.Run(ctx, harnessConfig)

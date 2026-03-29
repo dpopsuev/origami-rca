@@ -10,25 +10,38 @@ import (
 	"github.com/dpopsuev/origami/engine"
 )
 
-// Hooks returns the SessionHooks that fold-generated code calls.
-func Hooks() engine.SessionHooks {
-	return engine.SessionHooks{
-		CreateSession: createSession,
-		StepSchemas:   RCAStepSchemas(),
-		FormatReport: func(result any) (string, any, error) {
-			report, ok := result.(*CalibrationReport)
-			if !ok {
-				return "", nil, nil
-			}
-			formatted, err := RenderCalibrationReport(report, nil)
-			return formatted, report, err
-		},
+// rcaSessionFactory implements engine.SessionFactory (and the optional
+// ReportFormatter / StepSchemaProvider interfaces) for the RCA domain.
+type rcaSessionFactory struct{}
+
+// CreateSession implements engine.SessionFactory.
+func (f *rcaSessionFactory) CreateSession(ctx context.Context, params *engine.SessionParams) (*engine.SessionConfig, error) {
+	return createSession(ctx, params)
+}
+
+// FormatReport implements engine.ReportFormatter.
+func (f *rcaSessionFactory) FormatReport(result any) (string, any, error) {
+	report, ok := result.(*CalibrationReport)
+	if !ok {
+		return "", nil, nil
 	}
+	formatted, err := RenderCalibrationReport(report, nil)
+	return formatted, report, err
+}
+
+// StepSchemas implements engine.StepSchemaProvider.
+func (f *rcaSessionFactory) StepSchemas() []engine.StepSchema {
+	return RCAStepSchemas()
+}
+
+// Factory returns the SessionFactory that fold-generated code calls.
+func Factory() engine.SessionFactory {
+	return &rcaSessionFactory{}
 }
 
 // createSession wires scenario loading, transformer selection, and
 // calibration scoring into a SessionConfig with a custom RunFunc.
-func createSession(_ context.Context, params engine.SessionParams) (*engine.SessionConfig, error) {
+func createSession(_ context.Context, params *engine.SessionParams) (*engine.SessionConfig, error) {
 	// --- Parse domain params from Extra ---
 	scenarioName, _ := params.Extra["scenario"].(string)
 	if scenarioName == "" {
@@ -137,13 +150,13 @@ func createSession(_ context.Context, params engine.SessionParams) (*engine.Sess
 				ScoreCard:  scoreCard,
 			}
 
-			genReport, err := cal.Run(ctx, cal.HarnessConfig{
+			genReport, err := cal.Run(ctx, &cal.HarnessConfig{
 				Loader:    adapter,
 				Collector: adapter,
 				CircuitDef: circuitDef,
 				ScoreCard:  scoreCard,
 				Contract:   cal.ContractFromDef(circuitDef.Calibration),
-				Shared: engine.GraphRegistries{
+				Shared: &engine.GraphRegistries{
 					MediatorEndpoint: mediatorEndpoint,
 				},
 				PromptRelayer:  params.Relayer,

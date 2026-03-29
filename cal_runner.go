@@ -105,7 +105,7 @@ func RunCalibration(ctx context.Context, cfg *RunConfig) (*CalibrationReport, er
 		return nil, fmt.Errorf("load circuit def: %w", err)
 	}
 
-	genReport, err := cal.Run(ctx, cal.HarnessConfig{
+	genReport, err := cal.Run(ctx, &cal.HarnessConfig{
 		Loader:         adapter,
 		Collector:      adapter,
 		CircuitDef:     def,

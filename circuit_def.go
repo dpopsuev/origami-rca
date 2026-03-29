@@ -68,7 +68,7 @@ func BuildRunner(circuitData []byte, th Thresholds, comps ...*engine.Component) 
 	if err != nil {
 		return nil, err
 	}
-	reg := engine.GraphRegistries{}
+	reg := &engine.GraphRegistries{}
 	if len(comps) > 0 {
 		reg, err = engine.MergeComponents(reg, comps...)
 		if err != nil {

@@ -7,7 +7,7 @@ metadata:
   description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
 spec:
   version: "1.0.0"
-  hooks: "Hooks()"
+  session_factory: "Factory()"
   resolver: SchematicResolver
   provides:
     transformers: [context-builder, prompt-filler]

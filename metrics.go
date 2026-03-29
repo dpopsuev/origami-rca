@@ -133,7 +133,7 @@ func AggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 		return runs[0]
 	}
 
-	agg := cal.AggregateRunMetrics(runs, func(m Metric) bool {
+	agg := cal.AggregateRunMetrics(runs, func(m *Metric) bool {
 		if def := sc.FindDef(m.ID); def != nil {
 			return def.Evaluate(m.Value)
 		}

@@ -54,7 +54,7 @@ func RunHITLStep(ctx context.Context, cfg *HITLConfig) (*HITLResult, error) {
 		return nil, err
 	}
 
-	wrapped := engine.WrapWithCheckpointer(walker, cp)
+	wrapped := engine.WrapWithCheckpointer(walker, cp, nil)
 	walkErr := runner.Walk(ctx, wrapped, startNode)
 	return buildResult(walker, walkErr)
 }
@@ -92,7 +92,7 @@ func ResumeHITLStep(ctx context.Context, cfg *HITLConfig, artifactData []byte) (
 	}
 	walker.State().Context["resume_input"] = artifact
 
-	wrapped := engine.WrapWithCheckpointer(walker, cp)
+	wrapped := engine.WrapWithCheckpointer(walker, cp, nil)
 	walkErr := runner.Walk(ctx, wrapped, startNode)
 	return buildResult(walker, walkErr)
 }

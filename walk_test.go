@@ -145,7 +145,7 @@ func TestWalkCase_HITL_Fallback(t *testing.T) {
 		t.Fatalf("LoadCircuitDef: %v", err)
 	}
 
-	err = runner.Walk(context.Background(), walker, def.Start)
+	err = runner.Walk(context.Background(), walker, string(def.Start))
 	if err == nil {
 		t.Fatal("expected error for HITL fallback (no prompt dir)")
 	}

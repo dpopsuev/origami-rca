@@ -46,7 +46,7 @@ func WalkCase(ctx context.Context, cfg *WalkConfig) (*WalkResult, error) {
 
 	results := engine.BatchWalk(ctx, engine.BatchWalkConfig{
 		Def:    def,
-		Shared: engine.GraphRegistries{},
+		Shared: &engine.GraphRegistries{},
 		Cases: []engine.BatchCase{{
 			ID: cfg.CaseLabel,
 			Context: map[string]any{
