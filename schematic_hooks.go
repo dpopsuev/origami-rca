@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
+	"time"
 
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/engine"
@@ -183,6 +185,33 @@ func createSession(_ context.Context, params *engine.SessionParams) (*engine.Ses
 			TotalCases: len(scenario.Cases),
 			Scenario:   scenario.Name,
 		},
-		RunFunc: runFunc,
+		RunFunc:   runFunc,
+		Preflight: buildPreflight(backend, mode, mediatorEndpoint),
 	}, nil
+}
+
+// buildPreflight returns a fail-fast validation function that checks
+// runtime prerequisites before the calibration run starts.
+func buildPreflight(backend, mode, mediatorEndpoint string) func(context.Context) error {
+	return func(ctx context.Context) error {
+		// LLM backend requires a dispatcher (already checked in createSession,
+		// but preflight is the canonical enforcement point going forward).
+		if backend == backendLLM && mode != string(ModeOffline) {
+			// Online mode: mediator must be reachable for sub-circuit delegation.
+			if mediatorEndpoint == "" {
+				return fmt.Errorf("ORIGAMI_MEDIATOR_ENDPOINT is required for online calibration (backend=%s, mode=%s)", backend, mode)
+			}
+			httpClient := &http.Client{Timeout: 5 * time.Second}
+			healthURL := mediatorEndpoint[:len(mediatorEndpoint)-len("/mcp")] + "/healthz"
+			resp, err := httpClient.Get(healthURL)
+			if err != nil {
+				return fmt.Errorf("mediator unreachable at %s: %w", healthURL, err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("mediator unhealthy at %s: status %d", healthURL, resp.StatusCode)
+			}
+		}
+		return nil
+	}
 }
