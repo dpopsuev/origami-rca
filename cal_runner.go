@@ -194,6 +194,15 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 		return
 	}
 
+	// Populate expected fields from ground truth (for data-driven tuning)
+	r.ExpectedPath = gt.ExpectedPath
+	r.ExpectedSkip = gt.ExpectSkip
+	r.ExpectedCascade = gt.ExpectCascade
+	if gt.ExpectedTriage != nil {
+		r.ExpectedCategory = gt.ExpectedTriage.SymptomCategory
+		r.ExpectedRepos = gt.ExpectedTriage.CandidateRepos
+	}
+
 	// Path accuracy
 	r.PathCorrect = cal.PathsEqual(r.ActualPath, gt.ExpectedPath)
 
@@ -206,6 +215,8 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	if gt.RCAID != "" {
 		for j := range scenario.RCAs {
 			if scenario.RCAs[j].ID == gt.RCAID {
+				r.ExpectedDefectType = scenario.RCAs[j].DefectType
+				r.ExpectedComponent = scenario.RCAs[j].Component
 				r.DefectTypeCorrect = (r.ActualDefectType == scenario.RCAs[j].DefectType)
 				r.ComponentCorrect = (r.ActualComponent == scenario.RCAs[j].Component) ||
 					(r.ActualRCAMessage != "" && strings.Contains(

@@ -265,6 +265,15 @@ type CaseResult struct {
 	StepCount           int   `json:"step_count,omitempty" yaml:"step_count,omitempty"`
 	WallClockMs         int64 `json:"wall_clock_ms,omitempty" yaml:"wall_clock_ms,omitempty"`
 
+	// Expected outcomes (from ground truth — for data-driven tuning)
+	ExpectedDefectType  string   `json:"expected_defect_type,omitempty" yaml:"expected_defect_type,omitempty"`
+	ExpectedCategory    string   `json:"expected_category,omitempty" yaml:"expected_category,omitempty"`
+	ExpectedComponent   string   `json:"expected_component,omitempty" yaml:"expected_component,omitempty"`
+	ExpectedPath        []string `json:"expected_path,omitempty" yaml:"expected_path,omitempty"`
+	ExpectedSkip        bool     `json:"expected_skip" yaml:"expected_skip"`
+	ExpectedCascade     bool     `json:"expected_cascade" yaml:"expected_cascade"`
+	ExpectedRepos       []string `json:"expected_repos,omitempty" yaml:"expected_repos,omitempty"`
+
 	// Per-case scoring
 	DefectTypeCorrect  bool    `json:"defect_type_correct" yaml:"defect_type_correct"`
 	CategoryCorrect    bool    `json:"category_correct" yaml:"category_correct"`
