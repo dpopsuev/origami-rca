@@ -44,6 +44,7 @@ type RunConfig struct {
 	GapConfidentThreshold    float64 // convergence >= this → confident (no gap brief); 0 uses default 0.80
 	GapInconclusiveThreshold float64 // convergence < this → inconclusive (gap brief required); 0 uses default 0.50
 	CircuitData              []byte  // circuit definition YAML; required
+	Shared                   *engine.GraphRegistries // pre-loaded registries (e.g., sub-circuit defs); optional
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -111,6 +112,7 @@ func RunCalibration(ctx context.Context, cfg *RunConfig) (*CalibrationReport, er
 		CircuitDef:     def,
 		ScoreCard:      cfg.ScoreCard,
 		Contract:       cal.ContractFromDef(def.Calibration),
+		Shared:         cfg.Shared,
 		Scenario:       cfg.Scenario.Name,
 		Transformer:    cfg.TransformerName,
 		Runs:           cfg.Runs,

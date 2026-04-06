@@ -9,6 +9,7 @@ import (
 	"time"
 
 	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/engine"
 )
 
@@ -126,6 +127,14 @@ func createSession(_ context.Context, params *engine.SessionParams) (*engine.Ses
 	// --- Mediator endpoint for sub-circuit delegation (gather-code → gnd) ---
 	mediatorEndpoint := os.Getenv("ORIGAMI_MEDIATOR_ENDPOINT")
 
+	// --- Load sub-circuit definitions from resolvers (e.g., GND) ---
+	var shared *engine.GraphRegistries
+	if len(params.SubCircuitResolvers) > 0 && params.DomainFS != nil {
+		shared = &engine.GraphRegistries{
+			Circuits: circuit.LoadSubCircuitsFromFS(params.DomainFS, params.SubCircuitResolvers),
+		}
+	}
+
 	// --- Build RunFunc that runs the full calibration pipeline ---
 	runFunc := func(ctx context.Context) (any, error) {
 		return RunCalibration(ctx, &RunConfig{
@@ -137,6 +146,7 @@ func createSession(_ context.Context, params *engine.SessionParams) (*engine.Ses
 			ScoreCard:       scoreCard,
 			CircuitData:     circuitData,
 			Parallel:        params.Parallel,
+			Shared:          shared,
 		})
 	}
 
