@@ -17,22 +17,18 @@ spec:
     sources:
       - name: source
         type: SourceReader
-        option: WithSourceReader
         description: Reads test failure data from an external tracker
         optional: true
       - name: discoverer
         type: RunDiscoverer
-        option: WithRunDiscoverer
         description: Discovers available CI runs and their failures
         optional: true
     storage:
       - name: store
         type: store.Store
-        option: WithStore
         description: Persistent storage backend (built-in SQLite default)
         optional: true
       - name: writer
         type: DefectWriter
-        option: WithDefectWriter
         description: Writes RCA results back to the external tracker
         optional: true
