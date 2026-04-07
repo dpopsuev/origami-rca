@@ -2,6 +2,7 @@ package rca
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -100,8 +101,11 @@ func createSession(_ context.Context, params *engine.SessionParams, fetcher rcat
 			}
 		}
 	} else {
-		// Online mode: create fetcher from Extra params or injected option.
+		// Online mode: try typed Tools registry first, fall back to Extra bag.
 		rpFetcher := fetcher
+		if rpFetcher == nil {
+			rpFetcher = fetcherFromTools(params)
+		}
 		if rpFetcher == nil {
 			rpFetcher = fetcherFromExtra(params.Extra)
 		}
@@ -256,12 +260,63 @@ func buildPreflight(backend, mode, mediatorEndpoint string) func(context.Context
 	}
 }
 
+// fetcherFromTools reads the source_read tool from the typed Tools registry.
+// Returns nil if Tools is nil or the tool isn't registered.
+func fetcherFromTools(params *engine.SessionParams) rcatype.EnvelopeFetcher {
+	if params.Tools == nil {
+		return nil
+	}
+	t, err := params.Tools.Get("source_read")
+	if err != nil {
+		return nil
+	}
+	// Wrap the battery.Tool as an EnvelopeFetcher adapter.
+	return &toolFetcherAdapter{tool: t}
+}
+
+// toolFetcherAdapter adapts a battery.Tool to rcatype.EnvelopeFetcher.
+type toolFetcherAdapter struct {
+	tool interface {
+		Execute(ctx context.Context, input json.RawMessage) (string, error)
+	}
+}
+
+func (a *toolFetcherAdapter) Fetch(runID string) (*rcatype.Envelope, error) {
+	input, _ := json.Marshal(map[string]string{"launch_id": runID})
+	result, err := a.tool.Execute(context.Background(), input)
+	if err != nil {
+		return nil, err
+	}
+	var env rcatype.Envelope
+	if err := json.Unmarshal([]byte(result), &env); err != nil {
+		return nil, fmt.Errorf("parse tool result: %w", err)
+	}
+	return &env, nil
+}
+
 // fetcherFromExtra extracts an EnvelopeFetcher from Extra params.
-// The consumer (board/config) provides the fetcher at runtime via
-// extra["source_fetcher"]. RCA never imports a specific connector.
+// Checks for a pre-built fetcher first (testing/injection), then
+// for a SourceReaderFactory (registered by consumer at startup).
+// RCA never imports a specific connector — the factory is provided
+// by the consumer or framework.
 func fetcherFromExtra(extra map[string]any) rcatype.EnvelopeFetcher {
+	// Pre-built fetcher (testing or direct injection).
 	if f, ok := extra["source_fetcher"].(rcatype.EnvelopeFetcher); ok {
 		return f
+	}
+	// Factory function (registered by fold-generated code via DefaultExtra).
+	if factory, ok := extra["source_factory"].(rcatype.SourceReaderFactory); ok {
+		baseURL, _ := extra["rp_base_url"].(string)
+		apiKeyPath, _ := extra["rp_api_key_path"].(string)
+		project, _ := extra["rp_project"].(string)
+		if baseURL == "" || project == "" {
+			return nil
+		}
+		reader, err := factory(baseURL, apiKeyPath, project)
+		if err != nil {
+			return nil
+		}
+		return reader.EnvelopeFetcher()
 	}
 	return nil
 }
