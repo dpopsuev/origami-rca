@@ -11,15 +11,29 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/engine"
+
+	"github.com/dpopsuev/origami-rca/rcatype"
 )
+
+// FactoryOption configures the RCA SessionFactory.
+type FactoryOption func(*rcaSessionFactory)
+
+// WithSourceFetcher provides an EnvelopeFetcher for online mode.
+// When set and mode=online, createSession calls ResolveRPCases to
+// fetch real failure data from the external tracker.
+func WithSourceFetcher(f rcatype.EnvelopeFetcher) FactoryOption {
+	return func(s *rcaSessionFactory) { s.fetcher = f }
+}
 
 // rcaSessionFactory implements engine.SessionFactory (and the optional
 // ReportFormatter / StepSchemaProvider interfaces) for the RCA domain.
-type rcaSessionFactory struct{}
+type rcaSessionFactory struct {
+	fetcher rcatype.EnvelopeFetcher // optional: online RP data
+}
 
 // CreateSession implements engine.SessionFactory.
 func (f *rcaSessionFactory) CreateSession(ctx context.Context, params *engine.SessionParams) (*engine.SessionConfig, error) {
-	return createSession(ctx, params)
+	return createSession(ctx, params, f.fetcher)
 }
 
 // FormatReport implements engine.ReportFormatter.
@@ -38,13 +52,17 @@ func (f *rcaSessionFactory) StepSchemas() []engine.StepSchema {
 }
 
 // Factory returns the SessionFactory that fold-generated code calls.
-func Factory() engine.SessionFactory {
-	return &rcaSessionFactory{}
+func Factory(opts ...FactoryOption) engine.SessionFactory {
+	f := &rcaSessionFactory{}
+	for _, opt := range opts {
+		opt(f)
+	}
+	return f
 }
 
 // createSession wires scenario loading, transformer selection, and
 // calibration scoring into a SessionConfig with a custom RunFunc.
-func createSession(_ context.Context, params *engine.SessionParams) (*engine.SessionConfig, error) {
+func createSession(_ context.Context, params *engine.SessionParams, fetcher rcatype.EnvelopeFetcher) (*engine.SessionConfig, error) {
 	// --- Parse domain params from Extra ---
 	scenarioName, _ := params.Extra["scenario"].(string)
 	if scenarioName == "" {
@@ -79,6 +97,17 @@ func createSession(_ context.Context, params *engine.SessionParams) (*engine.Ses
 		if err == nil {
 			if resolveErr := ResolveOfflineRP(offlineFS, scenario); resolveErr != nil {
 				return nil, fmt.Errorf("resolve offline RP: %w", resolveErr)
+			}
+		}
+	} else {
+		// Online mode: create fetcher from Extra params or injected option.
+		rpFetcher := fetcher
+		if rpFetcher == nil {
+			rpFetcher = fetcherFromExtra(params.Extra)
+		}
+		if rpFetcher != nil {
+			if resolveErr := ResolveRPCases(rpFetcher, scenario); resolveErr != nil {
+				return nil, fmt.Errorf("resolve online RP: %w", resolveErr)
 			}
 		}
 	}
@@ -225,4 +254,14 @@ func buildPreflight(backend, mode, mediatorEndpoint string) func(context.Context
 		}
 		return nil
 	}
+}
+
+// fetcherFromExtra extracts an EnvelopeFetcher from Extra params.
+// The consumer (board/config) provides the fetcher at runtime via
+// extra["source_fetcher"]. RCA never imports a specific connector.
+func fetcherFromExtra(extra map[string]any) rcatype.EnvelopeFetcher {
+	if f, ok := extra["source_fetcher"].(rcatype.EnvelopeFetcher); ok {
+		return f
+	}
+	return nil
 }

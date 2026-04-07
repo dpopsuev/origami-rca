@@ -17,7 +17,7 @@ spec:
     sources:
       - name: source
         type: SourceReader
-        description: Reads test failure data from an external tracker
+        description: Reads test failure data from an external tracker (via Extra params at runtime)
         optional: true
       - name: discoverer
         type: RunDiscoverer
